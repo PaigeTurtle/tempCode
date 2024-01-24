@@ -91,8 +91,6 @@ public class ManhattanProject extends LinearOpMode
     // Positions
     private int slidePos;
 
-
-
     // States
     private enum SlideState
     {
@@ -271,7 +269,7 @@ public class ManhattanProject extends LinearOpMode
 
         // May need to change this depending on how robot behaves
         frontleft.setDirection(DcMotorEx.Direction.FORWARD);
-        backleft.setDirection(DcMotorEx.Direction.FORWARD);
+        backleft.setDirection(DcMotorEx.Direction.REVERSE);
         backright.setDirection(DcMotorEx.Direction.REVERSE);
         frontright.setDirection(DcMotorEx.Direction.REVERSE);
         slides.setDirection(DcMotorEx.Direction.FORWARD);
