@@ -21,14 +21,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 @TeleOp (name = "Boeing 737 Max")
 public class Boeing737Max extends LinearOpMode
 {
-    /*
-    float leftF_rightB_pair;
-    float Turning;
-    float leftb_rightF_pair;
-    */
-    double y = -gamepad1.left_stick_y;
-    double x = gamepad1.left_stick_x*1.1;
-    double rx = gamepad1.right_stick_x;
+
+    double leftF_rightB_pair;
+    double Turning;
+    double leftb_rightF_pair;
+
+
 
     // Constants
     public static final double BACKDROP_SAFETY_DISTANCE = 14.0; // in inches
@@ -288,7 +286,7 @@ public class Boeing737Max extends LinearOpMode
         backright.setDirection(DcMotorEx.Direction.REVERSE);
         frontright.setDirection(DcMotorEx.Direction.REVERSE);
         slides.setDirection(DcMotorEx.Direction.FORWARD);
-        leftHanger.setDirection(DcMotorEx.Direction.REVERSE);
+        leftHanger.setDirection(DcMotorEx.Direction.FORWARD);
         rightHanger.setDirection(DcMotorEx.Direction.FORWARD);
         arm.setDirection(DcMotorEx.Direction.REVERSE);
 
@@ -388,15 +386,7 @@ public class Boeing737Max extends LinearOpMode
         {
             resetAngle();
 
-            double denom = Math.max(Math.abs(y)+Math.abs(x)+Math.abs(rx),1);
-            double flpow = (y+x+rx)/denom;
-            double blpow = (y-x+rx)/denom;
-            double frpow = (y-x-rx)/denom;
-            double brpow = (y+x-rx)/denom;
-            power(flpow,frpow,blpow,-brpow);
 
-
-            /*
             Turning = -gamepad1.right_stick_x;
             if(Turning>.25||Turning<-.25){
                 power(Turning,-Turning,Turning,Turning);
@@ -406,7 +396,10 @@ public class Boeing737Max extends LinearOpMode
                 power(-leftF_rightB_pair,-leftb_rightF_pair,-leftb_rightF_pair,leftF_rightB_pair);
             }
 
-            why i hate github
+
+
+
+            /*
             if (driveState == DriveState.STATIONARY) {power(0);}
             else if (driveState == DriveState.FORWARD) {power(pow, pow, pow, pow);}
             else if (driveState == DriveState.BACKWARD) {power(-1*pow, -1*pow, -1*pow, -1*pow);}
@@ -881,7 +874,7 @@ public class Boeing737Max extends LinearOpMode
             arm.setPower(-1*armManualPow);
         }
         else if (holdArm){
-            arm.setPower(0.1);
+            arm.setPower(0.01);
         }
         else
         {
