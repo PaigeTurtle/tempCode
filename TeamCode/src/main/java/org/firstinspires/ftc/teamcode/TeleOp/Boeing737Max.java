@@ -20,6 +20,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 @TeleOp (name = "Boeing 737 Max")
 public class Boeing737Max extends LinearOpMode
 {
+    float leftF_rightB_pair;
+    float Turning;
+    float leftb_rightF_pair;
+
+
     // Constants
     public static final double BACKDROP_SAFETY_DISTANCE = 14.0; // in inches
     public final static double ARM_INTAKE = 0;
@@ -386,6 +391,17 @@ public class Boeing737Max extends LinearOpMode
         if (autoDriveState == AutoDriveState.INITIAL)
         {
             resetAngle();
+            Turning = -gamepad1.right_stick_x;
+            if(Turning>.25||Turning<-.25){
+                power(Turning,-Turning,Turning,Turning);
+            }else{
+                leftF_rightB_pair = -gamepad1.left_stick_x+-gamepad1.left_stick_y;
+                leftb_rightF_pair = gamepad1.left_stick_x+-gamepad1.left_stick_y;;
+                power(-leftF_rightB_pair,-leftb_rightF_pair,-leftb_rightF_pair,leftF_rightB_pair);
+            }
+
+
+            /*
             if (driveState == DriveState.STATIONARY) {power(0);}
             else if (driveState == DriveState.FORWARD) {power(pow, pow, pow, pow);}
             else if (driveState == DriveState.BACKWARD) {power(-1*pow, -1*pow, -1*pow, -1*pow);}
@@ -401,6 +417,9 @@ public class Boeing737Max extends LinearOpMode
             else if (driveState == DriveState.SLOW_RIGHT) {power(slowPow, -1*slowPow, -1*slowPow, slowPow);}
             else if (driveState == DriveState.CLOCKWISE) {power(pow, -1*pow, pow, -1*pow);}
             else if (driveState == DriveState.COUNTERCLOCKWISE) {power(-1*pow, pow, -1*pow, pow);}
+            */
+
+
         }
         else if (autoDriveState == AutoDriveState.QUICK_CLOCKWISE)
         {
