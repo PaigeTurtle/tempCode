@@ -31,13 +31,13 @@ public class Boeing737Max extends LinearOpMode
 
     // Constants
     public static final double BACKDROP_SAFETY_DISTANCE = 14.0; // in inches
-    public final static double LEFT_CLAW_TURNER_HOME = 1;
+    public final static double LEFT_CLAW_TURNER_HOME = 0.5;
     public final static double RIGHT_CLAW_TURNER_HOME = LEFT_CLAW_TURNER_HOME;
-    public final static double LEFT_CLAW_TURNER_OUTTAKE_DOWN = 0.8;
-    public final static double LEFT_CLAW_TURNER_OUTTAKE_UP = 0.4;
+    public final static double LEFT_CLAW_TURNER_OUTTAKE_DOWN = 0.999;
+    public final static double LEFT_CLAW_TURNER_OUTTAKE_UP = 0.15;
     public final static double RIGHT_CLAW_TURNER_OUTTAKE_DOWN = LEFT_CLAW_TURNER_OUTTAKE_DOWN;
     public final static double RIGHT_CLAW_TURNER_OUTTAKE_UP = LEFT_CLAW_TURNER_OUTTAKE_UP;
-    public final static double LEFT_CLAW_TURNER_INITIAL = 0.2;
+    public final static double LEFT_CLAW_TURNER_INITIAL = 0.8; // 0.8
     public final static double RIGHT_CLAW_TURNER_INITIAL = LEFT_CLAW_TURNER_INITIAL;
     public final static double LEFT_CLAW_OPENER_HOME = 0;
     public final static double LEFT_CLAW_OPENER_RANGE = 0.2;
@@ -47,9 +47,9 @@ public class Boeing737Max extends LinearOpMode
     public final static double PLANE_LAUNCHER_RANGE = 0.5;
     public final static double PLANE_LOCK_HOME = 0;
     public final static double PLANE_LOCK_RANGE = 0.67;
-    public final static double ARM_OUTTAKE_ROTATION = 0.5;
-    public final static double ARM_AIRPLANE_ROTATION = 0.8;
-    public final static double ARM_INTAKE_ROTATION = 0.05;
+    public final static double ARM_OUTTAKE_ROTATION = 0.48;
+    public final static double ARM_AIRPLANE_ROTATION = 0.55;
+    public final static double ARM_INTAKE_ROTATION = 0.08;
     public final static double HIGH_SET_LINE = 20.1; // in inches
     public final static double MEDIUM_SET_LINE = 16; // in inches
     public final static double LOW_SET_LINE = 12.375; // in inches
@@ -197,9 +197,10 @@ public class Boeing737Max extends LinearOpMode
             //armUpManual = gamepad2.left_stick_x > 0.25;
             //armDownManual = gamepad2.left_stick_x < -0.25;
             turnClawForIntake = gamepad2.right_stick_x < -0.25;
-            turnClawForDownOuttake = gamepad2.right_stick_y > 0.25;
+            //turnClawForDownOuttake = gamepad2.right_stick_y > 0.25;
             turnClawForUpOuttake = gamepad2.right_stick_x > 0.25;
-            holdArm = gamepad2.b;
+            //holdArm = gamepad2.b;
+            turnClawForDownOuttake = gamepad2.b;
 
             // Drivetrain
             if (stopDrive)
@@ -292,7 +293,7 @@ public class Boeing737Max extends LinearOpMode
         backleft.setDirection(DcMotorEx.Direction.REVERSE);
         backright.setDirection(DcMotorEx.Direction.REVERSE);
         frontright.setDirection(DcMotorEx.Direction.REVERSE);
-        slides.setDirection(DcMotorEx.Direction.FORWARD);
+        slides.setDirection(DcMotorEx.Direction.REVERSE);
         leftHanger.setDirection(DcMotorEx.Direction.FORWARD);
         rightHanger.setDirection(DcMotorEx.Direction.FORWARD);
         arm.setDirection(DcMotorEx.Direction.REVERSE);
@@ -300,20 +301,20 @@ public class Boeing737Max extends LinearOpMode
 
 
         leftClawTurner = hardwareMap.get(Servo.class, "left claw turner");
-        leftClawTurner.setDirection(Servo.Direction.REVERSE);
+        leftClawTurner.setDirection(Servo.Direction.FORWARD);
         leftClawTurner.setPosition(LEFT_CLAW_TURNER_INITIAL);
 
         rightClawTurner = hardwareMap.get(Servo.class, "right claw turner");
-        rightClawTurner.setDirection(Servo.Direction.FORWARD);
+        rightClawTurner.setDirection(Servo.Direction.REVERSE);
         rightClawTurner.setPosition(RIGHT_CLAW_TURNER_INITIAL);
 
         leftClawOpener = hardwareMap.get(Servo.class, "left claw opener");
-        leftClawOpener.setDirection(Servo.Direction.REVERSE);
-        leftClawOpener.setPosition(LEFT_CLAW_OPENER_HOME);
+        leftClawOpener.setDirection(Servo.Direction.FORWARD);
+        leftClawOpener.setPosition(LEFT_CLAW_OPENER_RANGE);
 
         rightClawOpener = hardwareMap.get(Servo.class, "right claw opener");
         rightClawOpener.setDirection(Servo.Direction.REVERSE);
-        rightClawOpener.setPosition(RIGHT_CLAW_OPENER_HOME);
+        rightClawOpener.setPosition(RIGHT_CLAW_OPENER_RANGE);
 
         planeLauncher = hardwareMap.get(Servo.class, "plane launcher");
         planeLauncher.setDirection(Servo.Direction.REVERSE);
@@ -677,7 +678,7 @@ public class Boeing737Max extends LinearOpMode
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_AIRPLANE;
             }
-            //else {arm.setPower(0.003);}
+            else {arm.setPower(0.0015);}
         }
         else if (armState == ArmState.TO_OUTTAKE)
         {
@@ -726,7 +727,7 @@ public class Boeing737Max extends LinearOpMode
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_AIRPLANE;
             }
-            //else {arm.setPower(-0.003);}
+            else {arm.setPower(-0.0025);}
         }
         else if (armState == ArmState.TO_AIRPLANE)
         {
@@ -775,10 +776,7 @@ public class Boeing737Max extends LinearOpMode
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_OUTTAKE;
             }
-            else
-            {
-                arm.setPower(-0.003);
-            }
+            else {arm.setPower(-0.004);}
         }
         else if (armState == ArmState.TO_INTAKE)
         {
@@ -812,60 +810,57 @@ public class Boeing737Max extends LinearOpMode
         // Claw Turner FSM
         if (turnerState == TurnerState.INTAKE)
         {
+            telemetry.addData("Claw Turner State", "Intake");
+            telemetry.update();
             if (turnClawForDownOuttake) {turnerState = TurnerState.TO_OUTTAKE_DOWN;}
             else if (turnClawForUpOuttake) {turnerState = TurnerState.TO_OUTTAKE_UP;}
         }
         else if (turnerState == TurnerState.TO_OUTTAKE_DOWN)
         {
-            if (Math.abs(leftClawTurner.getPosition() - LEFT_CLAW_TURNER_OUTTAKE_DOWN) < DOUBLE_EQUALITY_THRESHOLD && Math.abs(rightClawTurner.getPosition() - RIGHT_CLAW_TURNER_OUTTAKE_DOWN) < DOUBLE_EQUALITY_THRESHOLD)
-            {
-                turnerState = TurnerState.OUTTAKE_DOWN;
-            }
-            else
-            {
-                leftClawTurner.setPosition(LEFT_CLAW_TURNER_OUTTAKE_DOWN);
-                rightClawTurner.setPosition(RIGHT_CLAW_TURNER_OUTTAKE_DOWN);
-            }
+            telemetry.addData("Claw Turner State", "To Outtake Down");
+            telemetry.update();
+            rightClawTurner.setPosition(RIGHT_CLAW_TURNER_OUTTAKE_DOWN);
+            leftClawTurner.setPosition(LEFT_CLAW_TURNER_OUTTAKE_DOWN);
+            turnerState = TurnerState.OUTTAKE_DOWN;
         }
         else if (turnerState == TurnerState.OUTTAKE_DOWN)
         {
+            telemetry.addData("Claw Turner State", "Outtake Down");
+            telemetry.update();
             if (turnClawForIntake) {turnerState = TurnerState.TO_INTAKE;}
             else if (turnClawForUpOuttake) {turnerState = TurnerState.TO_OUTTAKE_UP;}
         }
         else if (turnerState == TurnerState.TO_OUTTAKE_UP)
         {
-            if (Math.abs(leftClawTurner.getPosition() - LEFT_CLAW_TURNER_OUTTAKE_UP) < DOUBLE_EQUALITY_THRESHOLD && Math.abs(rightClawTurner.getPosition() - RIGHT_CLAW_TURNER_OUTTAKE_UP) < DOUBLE_EQUALITY_THRESHOLD)
-            {
-                turnerState = TurnerState.OUTTAKE_UP;
-            }
-            else
-            {
-                leftClawTurner.setPosition(LEFT_CLAW_TURNER_OUTTAKE_UP);
-                rightClawTurner.setPosition(RIGHT_CLAW_TURNER_OUTTAKE_UP);
-            }
+            telemetry.addData("Claw Turner State", "To Outtake Up");
+            telemetry.update();
+            leftClawTurner.setPosition(LEFT_CLAW_TURNER_OUTTAKE_UP);
+            rightClawTurner.setPosition(RIGHT_CLAW_TURNER_OUTTAKE_UP);
+            turnerState = TurnerState.OUTTAKE_UP;
         }
         else if (turnerState == TurnerState.OUTTAKE_UP)
         {
+            telemetry.addData("Claw Turner State", "Outtake Up");
+            telemetry.update();
             if (turnClawForIntake) {turnerState = TurnerState.TO_INTAKE;}
             else if (turnClawForDownOuttake) {turnerState = TurnerState.TO_OUTTAKE_DOWN;}
         }
         else if (turnerState == TurnerState.TO_INTAKE)
         {
-            if (Math.abs(leftClawTurner.getPosition() - LEFT_CLAW_TURNER_HOME) < DOUBLE_EQUALITY_THRESHOLD && Math.abs(rightClawTurner.getPosition() - RIGHT_CLAW_TURNER_HOME) < DOUBLE_EQUALITY_THRESHOLD)
-            {
-                turnerState = TurnerState.INTAKE;
-            }
-            else
-            {
-                leftClawTurner.setPosition(LEFT_CLAW_TURNER_HOME);
-                rightClawTurner.setPosition(RIGHT_CLAW_TURNER_HOME);
-            }
+            telemetry.addData("Claw Turner State", "To Intake");
+            telemetry.update();
+            leftClawTurner.setPosition(LEFT_CLAW_TURNER_HOME);
+            rightClawTurner.setPosition(RIGHT_CLAW_TURNER_HOME);
+            turnerState = TurnerState.INTAKE;
         }
         else if (turnerState == TurnerState.INITIAL)
         {
+            telemetry.addData("Claw Turner State", "Initial");
+            telemetry.update();
             leftClawTurner.setPosition(LEFT_CLAW_TURNER_INITIAL);
             rightClawTurner.setPosition(RIGHT_CLAW_TURNER_INITIAL);
             if (turnClawForIntake) {turnerState = TurnerState.TO_INTAKE;}
+            if (turnClawForDownOuttake) {turnerState = TurnerState.TO_OUTTAKE_DOWN;}
         }
 
 
@@ -873,14 +868,14 @@ public class Boeing737Max extends LinearOpMode
         if (leftClawState == ClawState.CLOSED && openLeftClaw) {leftClawState = ClawState.TO_OPEN;}
         else if (leftClawState == ClawState.TO_OPEN)
         {
-            if (Math.abs(leftClawOpener.getPosition() - LEFT_CLAW_OPENER_RANGE) < DOUBLE_EQUALITY_THRESHOLD) {leftClawState = ClawState.OPEN;}
-            else {leftClawOpener.setPosition(LEFT_CLAW_OPENER_RANGE);}
+            leftClawOpener.setPosition(LEFT_CLAW_OPENER_RANGE);
+            leftClawState = ClawState.OPEN;
         }
         else if (leftClawState == ClawState.OPEN && closeLeftClaw) {leftClawState = ClawState.TO_CLOSED;}
         else if (leftClawState == ClawState.TO_CLOSED)
         {
-            if (Math.abs(leftClawOpener.getPosition() - LEFT_CLAW_OPENER_HOME) < DOUBLE_EQUALITY_THRESHOLD) {leftClawState = ClawState.CLOSED;}
-            else {leftClawOpener.setPosition(LEFT_CLAW_OPENER_HOME);}
+            leftClawOpener.setPosition(LEFT_CLAW_OPENER_HOME);
+            leftClawState = ClawState.CLOSED;
         }
 
 
@@ -888,14 +883,14 @@ public class Boeing737Max extends LinearOpMode
         if (rightClawState == ClawState.CLOSED && openRightClaw) {rightClawState = ClawState.TO_OPEN;}
         else if (rightClawState == ClawState.TO_OPEN)
         {
-            if (Math.abs(rightClawOpener.getPosition() - RIGHT_CLAW_OPENER_RANGE) < DOUBLE_EQUALITY_THRESHOLD) {rightClawState = ClawState.OPEN;}
-            else {rightClawOpener.setPosition(RIGHT_CLAW_OPENER_RANGE);}
+            rightClawOpener.setPosition(RIGHT_CLAW_OPENER_RANGE);
+            rightClawState = ClawState.OPEN;
         }
         else if (rightClawState == ClawState.OPEN && closeRightClaw) {rightClawState = ClawState.TO_CLOSED;}
         else if (rightClawState == ClawState.TO_CLOSED)
         {
-            if (Math.abs(rightClawOpener.getPosition() - RIGHT_CLAW_OPENER_HOME) < DOUBLE_EQUALITY_THRESHOLD) {rightClawState = ClawState.CLOSED;}
-            else {rightClawOpener.setPosition(RIGHT_CLAW_OPENER_HOME);}
+            rightClawOpener.setPosition(RIGHT_CLAW_OPENER_HOME);
+            rightClawState = ClawState.CLOSED;
         }
 
 
