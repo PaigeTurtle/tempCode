@@ -48,8 +48,8 @@ public class Boeing737Max extends LinearOpMode
     public final static double PLANE_LOCK_HOME = 0;
     public final static double PLANE_LOCK_RANGE = 0.67;
     public final static double ARM_OUTTAKE_ROTATION = 0.5;
-    public final static double ARM_AIRPLANE_ROTATION = 0.65;
-    public final static double ARM_INTAKE_ROTATION = 0.15;
+    public final static double ARM_AIRPLANE_ROTATION = 0.8;
+    public final static double ARM_INTAKE_ROTATION = 0.05;
     public final static double HIGH_SET_LINE = 20.1; // in inches
     public final static double MEDIUM_SET_LINE = 16; // in inches
     public final static double LOW_SET_LINE = 12.375; // in inches
@@ -658,23 +658,31 @@ public class Boeing737Max extends LinearOpMode
         // Arm FSM
         if (armState == ArmState.INTAKE)
         {
+            telemetry.addData("State", "Intake");
+            telemetry.update();
             arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
             if (armToOuttake)
             {
                 arm.setPower(0);
                 previousArmState = armState;
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_OUTTAKE;
             }
             else if (armToAirplane)
             {
                 arm.setPower(0);
                 previousArmState = armState;
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_AIRPLANE;
             }
             //else {arm.setPower(0.003);}
         }
         else if (armState == ArmState.TO_OUTTAKE)
         {
+            telemetry.addData("State", "To Outtake");
+            telemetry.update();
             if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
             {
                 arm.setPower(0);
@@ -698,24 +706,32 @@ public class Boeing737Max extends LinearOpMode
         }
         else if (armState == ArmState.OUTTAKE)
         {
+            telemetry.addData("State", "Outtake");
+            telemetry.update();
             arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
             arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
             if (armToIntake)
             {
                 arm.setPower(0);
                 previousArmState = armState;
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_INTAKE;
             }
             else if (armToAirplane)
             {
                 arm.setPower(0);
                 previousArmState = armState;
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_AIRPLANE;
             }
             //else {arm.setPower(-0.003);}
         }
         else if (armState == ArmState.TO_AIRPLANE)
         {
+            telemetry.addData("State", "To Airplane");
+            telemetry.update();
             if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
             {
                 arm.setPower(0);
@@ -739,18 +755,24 @@ public class Boeing737Max extends LinearOpMode
         }
         else if (armState == ArmState.AIRPLANE)
         {
+            telemetry.addData("State", "Airplane");
+            telemetry.update();
             arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
             arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
             if (armToIntake)
             {
                 arm.setPower(0);
                 previousArmState = armState;
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_INTAKE;
             }
             else if (armToOuttake)
             {
                 arm.setPower(0);
                 previousArmState = armState;
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_OUTTAKE;
             }
             else
@@ -760,7 +782,9 @@ public class Boeing737Max extends LinearOpMode
         }
         else if (armState == ArmState.TO_INTAKE)
         {
-            if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
+            telemetry.addData("State", "To Intake");
+            telemetry.update();
+            if (!(arm.isBusy()) && (int) (arm.getCurrentPosition()) != 0)
             {
                 arm.setPower(0);
                 armState = ArmState.INTAKE;
@@ -769,11 +793,14 @@ public class Boeing737Max extends LinearOpMode
             {
                 arm.setPower(0);
                 double rotation = 0;
-                if (previousArmState == ArmState.AIRPLANE) {rotation = ARM_INTAKE_ROTATION - ARM_AIRPLANE_ROTATION;}
-                else if (previousArmState == ArmState.OUTTAKE) {rotation = ARM_INTAKE_ROTATION - ARM_OUTTAKE_ROTATION;}
+                if (previousArmState == ArmState.AIRPLANE) {
+                    rotation = ARM_INTAKE_ROTATION - ARM_AIRPLANE_ROTATION;
+                } else if (previousArmState == ArmState.OUTTAKE) {
+                    rotation = ARM_INTAKE_ROTATION - ARM_OUTTAKE_ROTATION;
+                }
                 arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                armPos = (int)(rotation * TICKS_PER_REV_43);
+                armPos = (int) (rotation * TICKS_PER_REV_43);
                 arm.setTargetPosition(armPos);
                 arm.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
@@ -781,7 +808,6 @@ public class Boeing737Max extends LinearOpMode
                 arm.setPower(armAutoPow);
             }
         }
-
 
         // Claw Turner FSM
         if (turnerState == TurnerState.INTAKE)
