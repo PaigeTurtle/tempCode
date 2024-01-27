@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -47,6 +48,9 @@ public class Boeing737Max extends LinearOpMode
     public final static double PLANE_LAUNCHER_RANGE = 0.5;
     public final static double PLANE_LOCK_HOME = 0;
     public final static double PLANE_LOCK_RANGE = 0.67;
+    public final static double ARM_OUTTAKE_ROTATION = 0.5;
+    public final static double ARM_AIRPLANE_ROTATION = 0.65;
+    public final static double ARM_INTAKE_ROTATION = 0.15;
     public final static double HIGH_SET_LINE = 20.1; // in inches
     public final static double MEDIUM_SET_LINE = 16; // in inches
     public final static double LOW_SET_LINE = 12.375; // in inches
@@ -59,6 +63,7 @@ public class Boeing737Max extends LinearOpMode
     public final static double slideDownAutoPow = -0.5;
     public final static double slideUpManualPow = 0.4;
     public final static double slideDownManualPow = -0.3;
+    public final static double armAutoPow = 0.3;
     public final static double armManualPow = 0.2;
     public final static DistanceUnit BACKDROP_DISTANCE_UNIT = DistanceUnit.INCH;
     public final static double DOUBLE_EQUALITY_THRESHOLD = 0.0000001;
@@ -92,6 +97,7 @@ public class Boeing737Max extends LinearOpMode
 
     // Positions
     private int slidePos;
+    private int armPos;
 
     // States
     private enum SlideState
@@ -184,11 +190,11 @@ public class Boeing737Max extends LinearOpMode
             closeLeftClaw = gamepad2.left_bumper;
             openRightClaw = gamepad2.right_trigger > 0.25;
             closeRightClaw = gamepad2.right_bumper;
-            //armToIntake = gamepad2.left_stick_x < -0.25;
-            //armToOuttake = gamepad2.left_stick_x > 0.25;
-            //armToAirplane = gamepad2.right_stick_y < -0.25;
-            armUpManual = gamepad2.left_stick_x > 0.25;
-            armDownManual = gamepad2.left_stick_x < -0.25;
+            armToIntake = gamepad2.left_stick_x < -0.25;
+            armToOuttake = gamepad2.left_stick_x > 0.25;
+            armToAirplane = gamepad2.right_stick_y < -0.25;
+            //armUpManual = gamepad2.left_stick_x > 0.25;
+            //armDownManual = gamepad2.left_stick_x < -0.25;
             turnClawForIntake = gamepad2.right_stick_x < -0.25;
             turnClawForDownOuttake = gamepad2.right_stick_y > 0.25;
             turnClawForUpOuttake = gamepad2.right_stick_x > 0.25;
@@ -321,7 +327,7 @@ public class Boeing737Max extends LinearOpMode
     {
         lastAngles = new Orientation();
         imu = hardwareMap.get(BHI260IMU.class, "imu");
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD));
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.LEFT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
         imu.initialize(parameters);
         currentAngle = 0.0;
         touchSensor = hardwareMap.get(TouchSensor.class, "touch sensor");
@@ -342,6 +348,7 @@ public class Boeing737Max extends LinearOpMode
         rightClawState = ClawState.CLOSED;
         airplaneState = AirplaneState.INITIAL;
         previousSlideState = SlideState.INITIAL;
+        previousArmState = ArmState.INTAKE;
     }
 
 
@@ -364,13 +371,13 @@ public class Boeing737Max extends LinearOpMode
 
     public void resetAngle()
     {
-        lastAngles = imu.getRobotOrientation(AxesReference.INTRINSIC, AxesOrder.XZY, AngleUnit.DEGREES);
+        lastAngles = imu.getRobotOrientation(AxesReference.INTRINSIC, AxesOrder.YXZ, AngleUnit.DEGREES);
         currentAngle = 0.0;
     }
 
     public double getAngle()
     {
-        Orientation orientation = imu.getRobotOrientation(AxesReference.INTRINSIC, AxesOrder.XZY, AngleUnit.DEGREES);
+        Orientation orientation = imu.getRobotOrientation(AxesReference.INTRINSIC, AxesOrder.YXZ, AngleUnit.DEGREES);
         double deltaTheta = orientation.firstAngle - lastAngles.firstAngle;
         if (deltaTheta > 180) {deltaTheta -= 360;}
         else if (deltaTheta <= -180) {deltaTheta += 360;}
@@ -386,38 +393,22 @@ public class Boeing737Max extends LinearOpMode
         {
             resetAngle();
 
-
-            Turning = -gamepad1.right_stick_x;
-            if(Turning>.25||Turning<-.25){
-                power(Turning,-Turning,Turning,Turning);
-            }else{
-                leftF_rightB_pair = -gamepad1.left_stick_x+-gamepad1.left_stick_y;
-                leftb_rightF_pair = gamepad1.left_stick_x+-gamepad1.left_stick_y;;
-                power(-leftF_rightB_pair,-leftb_rightF_pair,-leftb_rightF_pair,leftF_rightB_pair);
-            }
-
-
-
-
-            /*
-            if (driveState == DriveState.STATIONARY) {power(0);}
-            else if (driveState == DriveState.FORWARD) {power(pow, pow, pow, pow);}
-            else if (driveState == DriveState.BACKWARD) {power(-1*pow, -1*pow, -1*pow, -1*pow);}
-            else if (driveState == DriveState.LEFT) {power(-1*pow, pow, pow, -1*pow);}
-            else if (driveState == DriveState.RIGHT) {power(pow, -1*pow, -1*pow, pow);}
-            else if (driveState == DriveState.DIAGONAL45) {power(0, pow, pow, 0);}
-            else if (driveState == DriveState.DIAGONAL135) {power(pow, 0, 0, pow);}
-            else if (driveState == DriveState.DIAGONAL225) {power(0, -1*pow, -1*pow, 0);}
-            else if (driveState == DriveState.DIAGONAL315) {power(-1*pow, 0, 0, -1*pow);}
-            else if (driveState == DriveState.SLOW_FORWARD) {power(slowPow, slowPow, slowPow, slowPow);}
-            else if (driveState == DriveState.SLOW_BACKWARD) {power(-1*slowPow, -1*slowPow, -1*slowPow, -1*slowPow);}
-            else if (driveState == DriveState.SLOW_LEFT) {power(-1*slowPow, slowPow, slowPow, -1*slowPow);}
-            else if (driveState == DriveState.SLOW_RIGHT) {power(slowPow, -1*slowPow, -1*slowPow, slowPow);}
-            else if (driveState == DriveState.CLOCKWISE) {power(pow, -1*pow, pow, -1*pow);}
-            else if (driveState == DriveState.COUNTERCLOCKWISE) {power(-1*pow, pow, -1*pow, pow);}
-            */
-
-
+            if (stopDrive) {power(0);}
+            else if (forward) {power(pow, pow, pow, pow);}
+            else if (backward) {power(-1*pow, -1*pow, -1*pow, -1*pow);}
+            else if (right) {power(-1*pow, pow, pow, -1*pow);}
+            else if (left) {power(pow, -1*pow, -1*pow, pow);}
+            else if (diagonal45) {power(0, pow, pow, 0);}
+            else if (diagonal135) {power(pow, 0, 0, pow);}
+            else if (diagonal225) {power(0, -1*pow, -1*pow, 0);}
+            else if (diagonal315) {power(-1*pow, 0, 0, -1*pow);}
+            else if (slowBackward) {power(slowPow, slowPow, slowPow, slowPow);}
+            else if (slowForward) {power(-1*slowPow, -1*slowPow, -1*slowPow, -1*slowPow);}
+            else if (slowRight) {power(-1*slowPow, slowPow, slowPow, -1*slowPow);}
+            else if (slowLeft) {power(slowPow, -1*slowPow, -1*slowPow, slowPow);}
+            else if (clockwise) {power(pow, -1*pow, pow, -1*pow);}
+            else if (counterClockwise) {power(-1*pow, pow, -1*pow, pow);}
+            else {power(0);}
         }
         else if (autoDriveState == AutoDriveState.QUICK_CLOCKWISE)
         {
@@ -664,10 +655,20 @@ public class Boeing737Max extends LinearOpMode
 
 
         // Arm FSM
-        /*if (armState == ArmState.INTAKE)
+        if (armState == ArmState.INTAKE)
         {
-            if (armToOuttake) {armState = ArmState.TO_OUTTAKE;}
-            else if (armToAirplane) {armState = ArmState.TO_AIRPLANE;}
+            arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            arm.setPower(0.15);
+            if (armToOuttake)
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_OUTTAKE;
+            }
+            else if (armToAirplane)
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_AIRPLANE;
+            }
         }
         else if (armState == ArmState.TO_OUTTAKE)
         {
@@ -677,55 +678,93 @@ public class Boeing737Max extends LinearOpMode
             }
             else if (!(arm.isBusy()))
             {
-                double distance = 0;
-                if (previousArmState == ArmState.INITIAL) {distance = HIGH_SET_LINE;}
-                else if (previousArmState == SlideState.LOW) {distance = HIGH_SET_LINE - LOW_SET_LINE;}
-                else if (previousArmState == SlideState.MEDIUM) {distance = HIGH_SET_LINE - MEDIUM_SET_LINE;}
+                double rotation = 0;
+                if (previousArmState == ArmState.INTAKE) {rotation = ARM_OUTTAKE_ROTATION - ARM_INTAKE_ROTATION;}
+                else if (previousArmState == ArmState.AIRPLANE) {rotation = ARM_OUTTAKE_ROTATION - ARM_AIRPLANE_ROTATION;}
                 arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                int armPos = (int)((distance / (SLIDE_HUB_DIAMETER * Math.PI)) * TICKS_PER_REV);
+                armPos = (int)(rotation * TICKS_PER_REV);
                 arm.setTargetPosition(armPos);
                 arm.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
                 // set power for moving up
-                if (distance > 0) {slides.setPower(slideUpAutoPow);}
-                else {slides.setPower(slideDownAutoPow);}
+                arm.setPower(armAutoPow);
             }
         }
         else if (armState == ArmState.OUTTAKE)
         {
-            if (armToIntake) {armState = ArmState.TO_INTAKE;}
-            else if (armToAirplane) {armState = ArmState.TO_AIRPLANE;}
+            arm.setPower(-0.15);
+            arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+            arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            if (armToIntake)
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_INTAKE;
+            }
+            else if (armToAirplane)
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_AIRPLANE;
+            }
         }
         else if (armState == ArmState.TO_AIRPLANE)
         {
-            if (Math.abs(leftArm.getPosition() - LEFT_ARM_AIRPLANE) < DOUBLE_EQUALITY_THRESHOLD && Math.abs(rightArm.getPosition() - RIGHT_ARM_AIRPLANE) < DOUBLE_EQUALITY_THRESHOLD)
+            if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
             {
                 armState = ArmState.AIRPLANE;
             }
-            else
+            else if (!(arm.isBusy()))
             {
-                leftArm.setPosition(LEFT_ARM_AIRPLANE);
-                rightArm.setPosition(RIGHT_ARM_AIRPLANE);
+                double rotation = 0;
+                if (previousArmState == ArmState.INTAKE) {rotation = ARM_AIRPLANE_ROTATION - ARM_INTAKE_ROTATION;}
+                else if (previousArmState == ArmState.OUTTAKE) {rotation = ARM_AIRPLANE_ROTATION - ARM_OUTTAKE_ROTATION;}
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                armPos = (int)(rotation * TICKS_PER_REV);
+                arm.setTargetPosition(armPos);
+                arm.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+
+                // set power for moving up
+                arm.setPower(armAutoPow);
             }
         }
         else if (armState == ArmState.AIRPLANE)
         {
-            if (armToIntake) {armState = ArmState.TO_INTAKE;}
-            else if (armToOuttake) {armState = ArmState.TO_OUTTAKE;}
+            arm.setPower(-0.15);
+            arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+            arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            if (armToIntake)
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_INTAKE;
+            }
+            else if (armToOuttake)
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_OUTTAKE;
+            }
         }
         else if (armState == ArmState.TO_INTAKE)
         {
-            if (Math.abs(leftArm.getPosition() - LEFT_ARM_HOME) < DOUBLE_EQUALITY_THRESHOLD && Math.abs(rightArm.getPosition() - RIGHT_ARM_HOME) < DOUBLE_EQUALITY_THRESHOLD)
+            if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
             {
                 armState = ArmState.INTAKE;
             }
-            else
+            else if (!(arm.isBusy()))
             {
-                leftArm.setPosition(LEFT_ARM_HOME);
-                rightArm.setPosition(RIGHT_ARM_HOME);
+                double rotation = 0;
+                if (previousArmState == ArmState.AIRPLANE) {rotation = ARM_INTAKE_ROTATION - ARM_AIRPLANE_ROTATION;}
+                else if (previousArmState == ArmState.OUTTAKE) {rotation = ARM_INTAKE_ROTATION - ARM_OUTTAKE_ROTATION;}
+                arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                armPos = (int)(rotation * TICKS_PER_REV);
+                arm.setTargetPosition(armPos);
+                arm.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
+
+                // set power for moving up
+                arm.setPower(armAutoPow);
             }
-        }*/
+        }
 
 
         // Claw Turner FSM
@@ -865,7 +904,7 @@ public class Boeing737Max extends LinearOpMode
         }
 
         // Arm
-        if (armUpManual)
+        /*if (armUpManual)
         {
             arm.setPower(armManualPow);
         }
@@ -879,6 +918,6 @@ public class Boeing737Max extends LinearOpMode
         else
         {
             arm.setPower(0);
-        }
+        }*/
     }
 }
