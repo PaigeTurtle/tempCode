@@ -31,15 +31,14 @@ public class Boeing737Max extends LinearOpMode
 
     // Constants
     public static final double BACKDROP_SAFETY_DISTANCE = 14.0; // in inches
-    public final static double ARM_INTAKE = 0;
-    public final static double ARM_OUTTAKE = 0.67;
-    public final static double ARM_AIRPLANE = 0.3;
     public final static double LEFT_CLAW_TURNER_HOME = 1;
     public final static double RIGHT_CLAW_TURNER_HOME = LEFT_CLAW_TURNER_HOME;
     public final static double LEFT_CLAW_TURNER_OUTTAKE_DOWN = 0.8;
     public final static double LEFT_CLAW_TURNER_OUTTAKE_UP = 0.4;
     public final static double RIGHT_CLAW_TURNER_OUTTAKE_DOWN = LEFT_CLAW_TURNER_OUTTAKE_DOWN;
     public final static double RIGHT_CLAW_TURNER_OUTTAKE_UP = LEFT_CLAW_TURNER_OUTTAKE_UP;
+    public final static double LEFT_CLAW_TURNER_INITIAL = 0.2;
+    public final static double RIGHT_CLAW_TURNER_INITIAL = LEFT_CLAW_TURNER_INITIAL;
     public final static double LEFT_CLAW_OPENER_HOME = 0;
     public final static double LEFT_CLAW_OPENER_RANGE = 0.2;
     public final static double RIGHT_CLAW_OPENER_HOME = LEFT_CLAW_OPENER_HOME;
@@ -56,15 +55,16 @@ public class Boeing737Max extends LinearOpMode
     public final static double LOW_SET_LINE = 12.375; // in inches
     public final static double WHEEL_DIAMETER = 4.0; // in inches
     public final static double SLIDE_HUB_DIAMETER = 1.5; // in inches
-    public final static double TICKS_PER_REV = 537.7;
+    public final static double TICKS_PER_REV_312 = 537.7;
+    public final static double TICKS_PER_REV_43 = 3895.9;
     public final static double pow = 0.77;
     public final static double slowPow = 0.2;
     public final static double slideUpAutoPow = 0.8;
     public final static double slideDownAutoPow = -0.5;
     public final static double slideUpManualPow = 0.4;
     public final static double slideDownManualPow = -0.3;
-    public final static double armAutoPow = 0.3;
-    public final static double armManualPow = 0.2;
+    public final static double armAutoPow = 1;
+    public final static double armManualPow = 0.5;
     public final static DistanceUnit BACKDROP_DISTANCE_UNIT = DistanceUnit.INCH;
     public final static double DOUBLE_EQUALITY_THRESHOLD = 0.0000001;
     public final static int LAUNCHER_DELAY = 1200;
@@ -79,7 +79,6 @@ public class Boeing737Max extends LinearOpMode
     private DcMotorEx arm;
     private Servo leftClawTurner, rightClawTurner;
     private Servo leftClawOpener, rightClawOpener;
-    private Servo leftHangerRelease, rightHangerRelease;
     private Servo planeLauncher, planeLock;
 
 
@@ -115,7 +114,7 @@ public class Boeing737Max extends LinearOpMode
     private AutoDriveState autoDriveState;
     private enum ArmState {INTAKE, TO_OUTTAKE, OUTTAKE, TO_AIRPLANE, AIRPLANE, TO_INTAKE;}
     private ArmState armState, previousArmState;
-    private enum TurnerState {INTAKE, TO_OUTTAKE_DOWN, OUTTAKE_DOWN, TO_OUTTAKE_UP, OUTTAKE_UP, TO_INTAKE;}
+    private enum TurnerState {INTAKE, TO_OUTTAKE_DOWN, OUTTAKE_DOWN, TO_OUTTAKE_UP, OUTTAKE_UP, TO_INTAKE, INITIAL;}
     private TurnerState turnerState;
     private enum ClawState {OPEN, TO_CLOSED, CLOSED, TO_OPEN;}
     private ClawState leftClawState, rightClawState;
@@ -128,7 +127,7 @@ public class Boeing737Max extends LinearOpMode
     private boolean forward, backward, left, right, slowForward, slowBackward, slowLeft, slowRight;
     private boolean diagonal45, diagonal135, diagonal225, diagonal315;
     private boolean counterClockwise, clockwise, quickClockwise, quickCounterClockwise, stopDrive;
-    private boolean launchAirplane, launchHanging, hangUp, hangDown, slidesDown, slideStop;
+    private boolean launchAirplane, hangUp, hangDown, slidesDown, slideStop;
     private boolean slidesUpLow, slidesUpMid, slidesUpHigh, slidesUpManual, slidesDownManual, slideTouchingSensor;
     private boolean openLeftClaw, closeLeftClaw, openRightClaw, closeRightClaw;
     private boolean armToOuttake, armToIntake, armToAirplane, armUpManual, armDownManual;
@@ -173,7 +172,6 @@ public class Boeing737Max extends LinearOpMode
             quickCounterClockwise = gamepad1.right_stick_button;
             stopDrive = gamepad1.left_trigger > 0.25;
             launchAirplane = gamepad1.x;
-            launchHanging = gamepad1.b;
             hangUp = gamepad1.y;
             hangDown = gamepad1.a;
 
@@ -190,9 +188,12 @@ public class Boeing737Max extends LinearOpMode
             closeLeftClaw = gamepad2.left_bumper;
             openRightClaw = gamepad2.right_trigger > 0.25;
             closeRightClaw = gamepad2.right_bumper;
-            armToIntake = gamepad2.left_stick_x < -0.25;
-            armToOuttake = gamepad2.left_stick_x > 0.25;
-            armToAirplane = gamepad2.right_stick_y < -0.25;
+            //armToIntake = gamepad2.left_stick_x < -0.25;
+            //armToOuttake = gamepad2.left_stick_x > 0.25;
+            //armToAirplane = gamepad2.right_stick_y < -0.25;
+            armToIntake = gamepad2.a;
+            armToOuttake = gamepad2.y;
+            armToAirplane = gamepad2.x;
             //armUpManual = gamepad2.left_stick_x > 0.25;
             //armDownManual = gamepad2.left_stick_x < -0.25;
             turnClawForIntake = gamepad2.right_stick_x < -0.25;
@@ -300,15 +301,15 @@ public class Boeing737Max extends LinearOpMode
 
         leftClawTurner = hardwareMap.get(Servo.class, "left claw turner");
         leftClawTurner.setDirection(Servo.Direction.REVERSE);
-        leftClawTurner.setPosition(LEFT_CLAW_TURNER_HOME);
+        leftClawTurner.setPosition(LEFT_CLAW_TURNER_INITIAL);
 
         rightClawTurner = hardwareMap.get(Servo.class, "right claw turner");
-        rightClawTurner.setDirection(Servo.Direction.REVERSE);
-        rightClawTurner.setPosition(RIGHT_CLAW_TURNER_HOME+0.09);
+        rightClawTurner.setDirection(Servo.Direction.FORWARD);
+        rightClawTurner.setPosition(RIGHT_CLAW_TURNER_INITIAL);
 
         leftClawOpener = hardwareMap.get(Servo.class, "left claw opener");
         leftClawOpener.setDirection(Servo.Direction.REVERSE);
-        leftClawOpener.setPosition(LEFT_CLAW_OPENER_HOME+0.09);
+        leftClawOpener.setPosition(LEFT_CLAW_OPENER_HOME);
 
         rightClawOpener = hardwareMap.get(Servo.class, "right claw opener");
         rightClawOpener.setDirection(Servo.Direction.REVERSE);
@@ -343,7 +344,7 @@ public class Boeing737Max extends LinearOpMode
         autoDriveState = AutoDriveState.INITIAL;
         slideState = SlideState.INITIAL;
         armState = ArmState.INTAKE;
-        turnerState = TurnerState.INTAKE;
+        turnerState = TurnerState.INITIAL;
         leftClawState = ClawState.CLOSED;
         rightClawState = ClawState.CLOSED;
         airplaneState = AirplaneState.INITIAL;
@@ -485,7 +486,7 @@ public class Boeing737Max extends LinearOpMode
                 else if (previousSlideState == SlideState.HIGH) {distance = LOW_SET_LINE - HIGH_SET_LINE;}
                 slides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 slides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                slidePos = (int)((distance / (SLIDE_HUB_DIAMETER * Math.PI)) * TICKS_PER_REV);
+                slidePos = (int)((distance / (SLIDE_HUB_DIAMETER * Math.PI)) * TICKS_PER_REV_312);
                 slides.setTargetPosition(slidePos);
                 slides.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
@@ -539,7 +540,7 @@ public class Boeing737Max extends LinearOpMode
                 else if (previousSlideState == SlideState.HIGH) {distance = MEDIUM_SET_LINE - HIGH_SET_LINE;}
                 slides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 slides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                slidePos = (int)((distance / (SLIDE_HUB_DIAMETER * Math.PI)) * TICKS_PER_REV);
+                slidePos = (int)((distance / (SLIDE_HUB_DIAMETER * Math.PI)) * TICKS_PER_REV_312);
                 slides.setTargetPosition(slidePos);
                 slides.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
@@ -593,7 +594,7 @@ public class Boeing737Max extends LinearOpMode
                 else if (previousSlideState == SlideState.MEDIUM) {distance = HIGH_SET_LINE - MEDIUM_SET_LINE;}
                 slides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 slides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                slidePos = (int)((distance / (SLIDE_HUB_DIAMETER * Math.PI)) * TICKS_PER_REV);
+                slidePos = (int)((distance / (SLIDE_HUB_DIAMETER * Math.PI)) * TICKS_PER_REV_312);
                 slides.setTargetPosition(slidePos);
                 slides.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
@@ -658,32 +659,36 @@ public class Boeing737Max extends LinearOpMode
         if (armState == ArmState.INTAKE)
         {
             arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-            arm.setPower(0.15);
             if (armToOuttake)
             {
+                arm.setPower(0);
                 previousArmState = armState;
                 armState = ArmState.TO_OUTTAKE;
             }
             else if (armToAirplane)
             {
+                arm.setPower(0);
                 previousArmState = armState;
                 armState = ArmState.TO_AIRPLANE;
             }
+            //else {arm.setPower(0.003);}
         }
         else if (armState == ArmState.TO_OUTTAKE)
         {
             if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
             {
+                arm.setPower(0);
                 armState = ArmState.OUTTAKE;
             }
             else if (!(arm.isBusy()))
             {
+                arm.setPower(0);
                 double rotation = 0;
                 if (previousArmState == ArmState.INTAKE) {rotation = ARM_OUTTAKE_ROTATION - ARM_INTAKE_ROTATION;}
                 else if (previousArmState == ArmState.AIRPLANE) {rotation = ARM_OUTTAKE_ROTATION - ARM_AIRPLANE_ROTATION;}
                 arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                armPos = (int)(rotation * TICKS_PER_REV);
+                armPos = (int)(rotation * TICKS_PER_REV_43);
                 arm.setTargetPosition(armPos);
                 arm.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
@@ -693,34 +698,38 @@ public class Boeing737Max extends LinearOpMode
         }
         else if (armState == ArmState.OUTTAKE)
         {
-            arm.setPower(-0.15);
             arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
             arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
             if (armToIntake)
             {
+                arm.setPower(0);
                 previousArmState = armState;
                 armState = ArmState.TO_INTAKE;
             }
             else if (armToAirplane)
             {
+                arm.setPower(0);
                 previousArmState = armState;
                 armState = ArmState.TO_AIRPLANE;
             }
+            //else {arm.setPower(-0.003);}
         }
         else if (armState == ArmState.TO_AIRPLANE)
         {
             if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
             {
+                arm.setPower(0);
                 armState = ArmState.AIRPLANE;
             }
             else if (!(arm.isBusy()))
             {
+                arm.setPower(0);
                 double rotation = 0;
                 if (previousArmState == ArmState.INTAKE) {rotation = ARM_AIRPLANE_ROTATION - ARM_INTAKE_ROTATION;}
                 else if (previousArmState == ArmState.OUTTAKE) {rotation = ARM_AIRPLANE_ROTATION - ARM_OUTTAKE_ROTATION;}
                 arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                armPos = (int)(rotation * TICKS_PER_REV);
+                armPos = (int)(rotation * TICKS_PER_REV_43);
                 arm.setTargetPosition(armPos);
                 arm.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
@@ -730,34 +739,41 @@ public class Boeing737Max extends LinearOpMode
         }
         else if (armState == ArmState.AIRPLANE)
         {
-            arm.setPower(-0.15);
             arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
             arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
             if (armToIntake)
             {
+                arm.setPower(0);
                 previousArmState = armState;
                 armState = ArmState.TO_INTAKE;
             }
             else if (armToOuttake)
             {
+                arm.setPower(0);
                 previousArmState = armState;
                 armState = ArmState.TO_OUTTAKE;
+            }
+            else
+            {
+                arm.setPower(-0.003);
             }
         }
         else if (armState == ArmState.TO_INTAKE)
         {
             if (!(arm.isBusy()) && (int)(arm.getCurrentPosition()) != 0)
             {
+                arm.setPower(0);
                 armState = ArmState.INTAKE;
             }
             else if (!(arm.isBusy()))
             {
+                arm.setPower(0);
                 double rotation = 0;
                 if (previousArmState == ArmState.AIRPLANE) {rotation = ARM_INTAKE_ROTATION - ARM_AIRPLANE_ROTATION;}
                 else if (previousArmState == ArmState.OUTTAKE) {rotation = ARM_INTAKE_ROTATION - ARM_OUTTAKE_ROTATION;}
                 arm.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                armPos = (int)(rotation * TICKS_PER_REV);
+                armPos = (int)(rotation * TICKS_PER_REV_43);
                 arm.setTargetPosition(armPos);
                 arm.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
 
@@ -818,6 +834,12 @@ public class Boeing737Max extends LinearOpMode
                 leftClawTurner.setPosition(LEFT_CLAW_TURNER_HOME);
                 rightClawTurner.setPosition(RIGHT_CLAW_TURNER_HOME);
             }
+        }
+        else if (turnerState == TurnerState.INITIAL)
+        {
+            leftClawTurner.setPosition(LEFT_CLAW_TURNER_INITIAL);
+            rightClawTurner.setPosition(RIGHT_CLAW_TURNER_INITIAL);
+            if (turnClawForIntake) {turnerState = TurnerState.TO_INTAKE;}
         }
 
 
