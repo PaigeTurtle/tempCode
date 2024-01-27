@@ -402,6 +402,7 @@ public class Boeing737Max extends LinearOpMode
 
 
             /*
+            why
             if (driveState == DriveState.STATIONARY) {power(0);}
             else if (driveState == DriveState.FORWARD) {power(pow, pow, pow, pow);}
             else if (driveState == DriveState.BACKWARD) {power(-1*pow, -1*pow, -1*pow, -1*pow);}
