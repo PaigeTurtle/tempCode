@@ -128,6 +128,7 @@ public class Boeing737Max extends LinearOpMode
     private boolean openLeftClaw, closeLeftClaw, openRightClaw, closeRightClaw;
     private boolean armToOuttake, armToIntake, armToAirplane, armUpManual, armDownManual;
     private boolean turnClawForIntake, turnClawForUpOuttake, turnClawForDownOuttake;
+    private boolean holdArm;
 
 
 
@@ -139,6 +140,7 @@ public class Boeing737Max extends LinearOpMode
         initStates();
         telemetry.addData("C4", "Ready");
         telemetry.update();
+
 
         waitForStart();
         while (opModeIsActive())
@@ -191,6 +193,7 @@ public class Boeing737Max extends LinearOpMode
             turnClawForIntake = gamepad2.right_stick_x < -0.25;
             turnClawForDownOuttake = gamepad2.right_stick_y > 0.25;
             turnClawForUpOuttake = gamepad2.right_stick_x > 0.25;
+            holdArm = gamepad2.b;
 
             // Drivetrain
             if (stopDrive)
@@ -880,6 +883,9 @@ public class Boeing737Max extends LinearOpMode
         else if (armDownManual)
         {
             arm.setPower(-1*armManualPow);
+        }
+        else if (holdArm){
+            arm.setPower(0.15);
         }
         else
         {
