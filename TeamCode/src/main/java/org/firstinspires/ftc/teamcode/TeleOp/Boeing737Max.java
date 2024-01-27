@@ -5,6 +5,7 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -20,10 +21,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 @TeleOp (name = "Boeing 737 Max")
 public class Boeing737Max extends LinearOpMode
 {
+    /*
     float leftF_rightB_pair;
     float Turning;
     float leftb_rightF_pair;
-
+    */
+    double y = -gamepad1.left_stick_y;
+    double x = gamepad1.left_stick_x*1.1;
+    double rx = gamepad1.right_stick_x;
 
     // Constants
     public static final double BACKDROP_SAFETY_DISTANCE = 14.0; // in inches
@@ -37,7 +42,7 @@ public class Boeing737Max extends LinearOpMode
     public final static double RIGHT_CLAW_TURNER_OUTTAKE_DOWN = LEFT_CLAW_TURNER_OUTTAKE_DOWN;
     public final static double RIGHT_CLAW_TURNER_OUTTAKE_UP = LEFT_CLAW_TURNER_OUTTAKE_UP;
     public final static double LEFT_CLAW_OPENER_HOME = 0;
-    public final static double LEFT_CLAW_OPENER_RANGE = 0.4;
+    public final static double LEFT_CLAW_OPENER_RANGE = 0.2;
     public final static double RIGHT_CLAW_OPENER_HOME = LEFT_CLAW_OPENER_HOME;
     public final static double RIGHT_CLAW_OPENER_RANGE = LEFT_CLAW_OPENER_RANGE;
     public final static double PLANE_LAUNCHER_HOME = 0;
@@ -285,7 +290,7 @@ public class Boeing737Max extends LinearOpMode
         slides.setDirection(DcMotorEx.Direction.FORWARD);
         leftHanger.setDirection(DcMotorEx.Direction.REVERSE);
         rightHanger.setDirection(DcMotorEx.Direction.FORWARD);
-        arm.setDirection(DcMotorEx.Direction.FORWARD);
+        arm.setDirection(DcMotorEx.Direction.REVERSE);
 
 
 
@@ -298,7 +303,7 @@ public class Boeing737Max extends LinearOpMode
         rightClawTurner.setPosition(RIGHT_CLAW_TURNER_HOME+0.09);
 
         leftClawOpener = hardwareMap.get(Servo.class, "left claw opener");
-        leftClawOpener.setDirection(Servo.Direction.FORWARD);
+        leftClawOpener.setDirection(Servo.Direction.REVERSE);
         leftClawOpener.setPosition(LEFT_CLAW_OPENER_HOME+0.09);
 
         rightClawOpener = hardwareMap.get(Servo.class, "right claw opener");
@@ -382,6 +387,16 @@ public class Boeing737Max extends LinearOpMode
         if (autoDriveState == AutoDriveState.INITIAL)
         {
             resetAngle();
+
+            double denom = Math.max(Math.abs(y)+Math.abs(x)+Math.abs(rx),1);
+            double flpow = (y+x+rx)/denom;
+            double blpow = (y-x+rx)/denom;
+            double frpow = (y-x-rx)/denom;
+            double brpow = (y+x-rx)/denom;
+            power(flpow,frpow,blpow,-brpow);
+
+
+            /*
             Turning = -gamepad1.right_stick_x;
             if(Turning>.25||Turning<-.25){
                 power(Turning,-Turning,Turning,Turning);
@@ -391,8 +406,6 @@ public class Boeing737Max extends LinearOpMode
                 power(-leftF_rightB_pair,-leftb_rightF_pair,-leftb_rightF_pair,leftF_rightB_pair);
             }
 
-
-            /*
             why i hate github
             if (driveState == DriveState.STATIONARY) {power(0);}
             else if (driveState == DriveState.FORWARD) {power(pow, pow, pow, pow);}
@@ -868,7 +881,7 @@ public class Boeing737Max extends LinearOpMode
             arm.setPower(-1*armManualPow);
         }
         else if (holdArm){
-            arm.setPower(0.15);
+            arm.setPower(0.1);
         }
         else
         {
