@@ -40,10 +40,6 @@ public class Boeing737Max extends LinearOpMode
     public final static double LEFT_CLAW_OPENER_RANGE = 0.4;
     public final static double RIGHT_CLAW_OPENER_HOME = LEFT_CLAW_OPENER_HOME;
     public final static double RIGHT_CLAW_OPENER_RANGE = LEFT_CLAW_OPENER_RANGE;
-    public final static double LEFT_HANGER_RELEASE_HOME = 0;
-    public final static double LEFT_HANGER_RELEASE_RANGE = 0.5;
-    public final static double RIGHT_HANGER_RELEASE_HOME = LEFT_HANGER_RELEASE_RANGE;
-    public final static double RIGHT_HANGER_RELEASE_RANGE = LEFT_HANGER_RELEASE_HOME;
     public final static double PLANE_LAUNCHER_HOME = 0;
     public final static double PLANE_LAUNCHER_RANGE = 0.5;
     public final static double PLANE_LOCK_HOME = 0;
@@ -308,14 +304,6 @@ public class Boeing737Max extends LinearOpMode
         rightClawOpener = hardwareMap.get(Servo.class, "right claw opener");
         rightClawOpener.setDirection(Servo.Direction.REVERSE);
         rightClawOpener.setPosition(RIGHT_CLAW_OPENER_HOME);
-
-        leftHangerRelease = hardwareMap.get(Servo.class, "left hanger release");
-        leftHangerRelease.setDirection(Servo.Direction.FORWARD);
-        leftHangerRelease.setPosition(LEFT_HANGER_RELEASE_HOME);
-
-        rightHangerRelease = hardwareMap.get(Servo.class, "right hanger release");
-        rightHangerRelease.setDirection(Servo.Direction.REVERSE);
-        rightHangerRelease.setPosition(RIGHT_HANGER_RELEASE_HOME);
 
         planeLauncher = hardwareMap.get(Servo.class, "plane launcher");
         planeLauncher.setDirection(Servo.Direction.REVERSE);
@@ -854,12 +842,7 @@ public class Boeing737Max extends LinearOpMode
 
 
         // Hanging
-        if (launchHanging)
-        {
-            leftHangerRelease.setPosition(LEFT_HANGER_RELEASE_RANGE);
-            rightHangerRelease.setPosition(RIGHT_HANGER_RELEASE_RANGE);
-        }
-        else if (hangUp)
+        if (hangUp)
         {
             leftHanger.setPower(1);
             rightHanger.setPower(1);
