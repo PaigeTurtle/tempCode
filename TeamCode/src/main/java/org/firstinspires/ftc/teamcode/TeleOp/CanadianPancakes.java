@@ -4,9 +4,7 @@ import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -19,8 +17,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
-@TeleOp (name = "Boeing 737 Max")
-public class Boeing737Max extends LinearOpMode
+@TeleOp (name = "Canadian Pancakes")
+public class CanadianPancakes extends LinearOpMode
 {
 
     double leftF_rightB_pair;
@@ -47,7 +45,7 @@ public class Boeing737Max extends LinearOpMode
     public final static double PLANE_LAUNCHER_RANGE = 0.5;
     public final static double PLANE_LOCK_HOME = 0;
     public final static double PLANE_LOCK_RANGE = 0.67;
-    public final static double ARM_OUTTAKE_ROTATION = 0.48;
+    public final static double ARM_OUTTAKE_ROTATION = 0.25;
     public final static double ARM_AIRPLANE_ROTATION = 0.55;
     public final static double ARM_INTAKE_ROTATION = 0.08;
     public final static double HIGH_SET_LINE = 20.1; // in inches
@@ -63,8 +61,8 @@ public class Boeing737Max extends LinearOpMode
     public final static double slideDownAutoPow = -0.5;
     public final static double slideUpManualPow = 0.4;
     public final static double slideDownManualPow = -0.3;
-    public final static double armAutoPow = 1;
-    public final static double armManualPow = 0.5;
+    public final static double armAutoPow = 0.65;
+    public final static double armManualPow = 0.6;
     public final static DistanceUnit BACKDROP_DISTANCE_UNIT = DistanceUnit.INCH;
     public final static double DOUBLE_EQUALITY_THRESHOLD = 0.0000001;
     public final static int LAUNCHER_DELAY = 1200;
@@ -130,7 +128,7 @@ public class Boeing737Max extends LinearOpMode
     private boolean launchAirplane, hangUp, hangDown, slidesDown, slideStop;
     private boolean slidesUpLow, slidesUpMid, slidesUpHigh, slidesUpManual, slidesDownManual, slideTouchingSensor;
     private boolean openLeftClaw, closeLeftClaw, openRightClaw, closeRightClaw;
-    private boolean armToOuttake, armToIntake, armToAirplane, armUpManual, armDownManual;
+    private boolean armToOuttake, armToIntake, armToAirplane, armUpManual, armDownManual, armStop;
     private boolean turnClawForIntake, turnClawForUpOuttake, turnClawForDownOuttake;
     private boolean holdArm;
 
@@ -191,11 +189,12 @@ public class Boeing737Max extends LinearOpMode
             //armToIntake = gamepad2.left_stick_x < -0.25;
             //armToOuttake = gamepad2.left_stick_x > 0.25;
             //armToAirplane = gamepad2.right_stick_y < -0.25;
-            armToIntake = gamepad2.a;
-            armToOuttake = gamepad2.y;
-            armToAirplane = gamepad2.x;
-            //armUpManual = gamepad2.left_stick_x > 0.25;
-            //armDownManual = gamepad2.left_stick_x < -0.25;
+            //armToIntake = gamepad2.a;
+            //armToOuttake = gamepad2.y;
+            //armToAirplane = gamepad2.x;
+            armUpManual = gamepad2.left_stick_x > 0.25;
+            armDownManual = gamepad2.left_stick_x < -0.25;
+            armStop = gamepad2.a;
             turnClawForIntake = gamepad2.right_stick_x < -0.25;
             //turnClawForDownOuttake = gamepad2.right_stick_y > 0.25;
             turnClawForUpOuttake = gamepad2.right_stick_x > 0.25;
@@ -657,6 +656,7 @@ public class Boeing737Max extends LinearOpMode
 
 
         // Arm FSM
+        /*
         if (armState == ArmState.INTAKE)
         {
             telemetry.addData("State", "Intake");
@@ -727,7 +727,7 @@ public class Boeing737Max extends LinearOpMode
                 arm.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 armState = ArmState.TO_AIRPLANE;
             }
-            else {arm.setPower(-0.0005);}
+            else {arm.setPower(0.0005);}
         }
         else if (armState == ArmState.TO_AIRPLANE)
         {
@@ -805,7 +805,7 @@ public class Boeing737Max extends LinearOpMode
                 // set power for moving up
                 arm.setPower(armAutoPow);
             }
-        }
+        }*/
 
         // Claw Turner FSM
         if (turnerState == TurnerState.INTAKE)
@@ -947,7 +947,11 @@ public class Boeing737Max extends LinearOpMode
         }
 
         // Arm
-        /*if (armUpManual)
+        if (armStop)
+        {
+            arm.setPower(0);
+        }
+        if (armUpManual)
         {
             arm.setPower(armManualPow);
         }
@@ -960,7 +964,7 @@ public class Boeing737Max extends LinearOpMode
         }
         else
         {
-            arm.setPower(0);
-        }*/
+            arm.setPower(0.005);
+        }
     }
 }
