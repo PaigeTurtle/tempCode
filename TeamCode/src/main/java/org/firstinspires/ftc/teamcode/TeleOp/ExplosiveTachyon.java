@@ -379,7 +379,7 @@ public class ExplosiveTachyon extends LinearOpMode
         }
         else if (slideState == SlideState.UP_LOW)
         {
-            if (!(rightSlides.isBusy()) && (int)(rightSlides.getCurrentPosition()) != 0)
+            if (!(rightSlides.isBusy()) && (rightSlides.getCurrentPosition()) != 0)
             {
                 slideState = SlideState.LOW;
             }
@@ -442,7 +442,7 @@ public class ExplosiveTachyon extends LinearOpMode
         }
         else if (slideState == SlideState.UP_MEDIUM)
         {
-            if (!(rightSlides.isBusy()) && (int)(rightSlides.getCurrentPosition()) != 0)
+            if (!(rightSlides.isBusy()) && (rightSlides.getCurrentPosition()) != 0)
             {
                 slideState = SlideState.MEDIUM;
             }
@@ -505,7 +505,7 @@ public class ExplosiveTachyon extends LinearOpMode
         }
         else if (slideState == SlideState.UP_HIGH)
         {
-            if (!(rightSlides.isBusy()) && (int)(rightSlides.getCurrentPosition()) != 0)
+            if (!(rightSlides.isBusy()) && (rightSlides.getCurrentPosition()) != 0)
             {
                 slideState = SlideState.HIGH;
             }

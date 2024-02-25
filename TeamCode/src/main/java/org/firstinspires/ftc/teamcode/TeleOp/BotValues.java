@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.Autonomous.RDXBlast;
+
 public class BotValues
 {
     // Arm
@@ -52,10 +54,20 @@ public class BotValues
     // Distance Sensor
     public final static double BACKDROP_SAFETY_DISTANCE = 12.0; // in inches
 
+    // Computer Vision
+    public final static Float INFERENCE_CONFIDENCE_THRESHOLD = 0.5f;
+    public final static int RESOLUTION_WIDTH = 1280;
+    public final static int RESOLUTION_HEIGHT = 720;
+    public final static String MODEL_NAME = "redBack.tflite";
+
     // Normalize Power By Voltage
     private static double voltageNormalize(double power) throws NullPointerException
     {
         return (power * (12.0 / ExplosiveTachyon.voltageSensor.getVoltage()));
+    }
+    private static double voltageNormalizeForAuto(double power) throws NullPointerException
+    {
+        return (power * (12.0 / RDXBlast.voltageSensor.getVoltage()));
     }
 
     // Automatic Acceleration / Deceleration

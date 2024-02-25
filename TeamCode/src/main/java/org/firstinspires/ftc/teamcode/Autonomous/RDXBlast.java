@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 import android.graphics.Bitmap;
 import android.util.Size;
 
+import com.qualcomm.hardware.bosch.BHI260IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -10,12 +12,14 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.TouchSensor;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.Autonomous.ImageRecognition;
+import org.firstinspires.ftc.teamcode.TeleOp.BotValues;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionPortalImpl;
@@ -30,13 +34,6 @@ import java.util.List;
 @Autonomous (name = "RDX Blast")
 public class RDXBlast extends LinearOpMode
 {
-    // Constants
-    private static final Float INFERENCE_CONFIDENCE_THRESHOLD = 0.5f;
-    private final int RESOLUTION_WIDTH = 1280;
-    private final int RESOLUTION_HEIGHT = 720;
-    private final static String MODEL_NAME = "redBack.tflite";
-
-
     // Computer Vision
     private VisionPortal portal;
     private CameraName camera;
@@ -54,13 +51,12 @@ public class RDXBlast extends LinearOpMode
 
     // Motors
     private DcMotorEx frontleft, backright, backleft, frontright;
+    private DcMotorEx leftSlides, rightSlides;
     private DcMotorEx leftHanger, rightHanger;
-    private DcMotorEx slides;
     private Servo leftArm, rightArm;
-    private Servo leftClawTurner, rightClawTurner;
-    private Servo leftClawOpener, rightClawOpener;
-    private Servo leftHangerRelease, rightHangerRelease;
-    private Servo planeLauncher, planeLock;
+    private Servo leftWrist, rightWrist;
+    private Servo leftClaw, rightClaw;
+    private Servo planeLauncher;
 
 
     // Sensors
@@ -69,8 +65,8 @@ public class RDXBlast extends LinearOpMode
     private double currentAngle;
     private TouchSensor touchSensor;
     private ElapsedTime timer;
-    private TouchSensor backdropSwitch;
-    private DistanceSensor leftDistanceSensor, rightDistanceSensor;
+    public static DistanceSensor distanceSensor;
+    public static VoltageSensor voltageSensor;
 
 
     // Positions
@@ -79,23 +75,21 @@ public class RDXBlast extends LinearOpMode
     private int slidePos;
 
     // States
+    private enum AutoState {RED_BACKDROP, RED_AUDIENCE, BLUE_BACKDROP, BLUE_AUDIENCE};
+    private AutoState autoState;
     private enum DriveState
     {
-        INITIAL, TO_SPIKE_MARK, AT_SPIKE_MARK, TO_DETECTION_SPOT, AT_DETECTION_SPOT, TO_BACKDROP, AT_BACKDROP,
-        TO_STACKS, AT_STACKS, PARKING, PARKED;
+        INITIAL, TO_SPIKE_MARK, AT_SPIKE_MARK, TO_DETECTION_SPOT, LOOKING_FOR_APRIL_TAG, PREPARE_YELLOW_OUTTAKE, SCORE_YELLOW,
+        TO_STACK_1, TO_STACK_2, TO_STACK_3, AT_STACK, TO_BACKDROP, AT_BACKDROP, PARKING, PARKED;
     }
     private DriveState driveState;
-    private enum SlideState
-    {
-        INITIAL, UP_LOW, LOW, UP_MEDIUM, MEDIUM, UP_HIGH, HIGH, DOWN, UP_MANUAL, DOWN_MANUAL, STATIONARY;
-    }
+    // States
+    private enum SlideState {INITIAL, UP_LOW, LOW, UP_MEDIUM, MEDIUM, UP_HIGH, HIGH, DOWN, UP_MANUAL, DOWN_MANUAL, STATIONARY};
     private SlideState slideState, previousSlideState;
-    private enum ArmState {INTAKE, TO_OUTTAKE, OUTTAKE, TO_AIRPLANE, AIRPLANE, TO_INTAKE;}
+    private enum ArmState {INTAKE, TO_OUTTAKE, OUTTAKE, TO_INTAKE};
     private ArmState armState;
-    private enum TurnerState {INTAKE, TO_OUTTAKE_DOWN, OUTTAKE_DOWN, TO_OUTTAKE_UP, OUTTAKE_UP, TO_INTAKE;}
-    private TurnerState turnerState;
-    private enum ClawState {OPEN, TO_CLOSED, CLOSED, TO_OPEN;}
-    private ClawState leftClawState, rightClawState;
+    private enum WristState {FOLD, TO_INTAKE, INTAKE, TO_DOWN_OUTTAKE, DOWN_OUTTAKE, TO_UP_OUTTAKE, UP_OUTTAKE, TO_FOLD};
+    private WristState wristState;
 
 
     // Essentially the main method
@@ -105,6 +99,7 @@ public class RDXBlast extends LinearOpMode
         initCV();
         initMotors();
         initSensors();
+        finalizeAutoState();
         telemetry.addData("C4", "Ready");
         telemetry.update();
 
@@ -114,6 +109,14 @@ public class RDXBlast extends LinearOpMode
 
         // Clear up memory
         classifier.clearImageClassifier();
+
+        while (opModeIsActive())
+        {
+            if (autoState == AutoState.RED_AUDIENCE) {triggerActionsRedAudience();}
+            else if (autoState == AutoState.BLUE_BACKDROP) {triggerActionsBlueBack();}
+            else if (autoState == AutoState.BLUE_AUDIENCE) {triggerActionsBlueAudience();}
+            else {triggerActionsRedBack();}
+        }
 
         // Place Purple Pixel on Spike Mark
         if (label == 0)
@@ -154,9 +157,9 @@ public class RDXBlast extends LinearOpMode
         camera = hardwareMap.get(WebcamName.class, "cool cam");
         aprilTagProcessor = AprilTagProcessor.easyCreateWithDefaults();
         aprilTagProcessor.setDecimation(2);
-        portal = (new VisionPortal.Builder().setCamera(camera).setCameraResolution(new Size(RESOLUTION_WIDTH, RESOLUTION_HEIGHT)).addProcessor(aprilTagProcessor)).build();
+        portal = (new VisionPortal.Builder().setCamera(camera).setCameraResolution(new Size(BotValues.RESOLUTION_WIDTH, BotValues.RESOLUTION_HEIGHT)).addProcessor(aprilTagProcessor)).build();
         portal.stopLiveView();
-        classifier = new ImageRecognition(INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, MODEL_NAME);
+        classifier = new ImageRecognition(BotValues.INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, BotValues.MODEL_NAME);
         frameNum = 0;
         label = -1;
         desiredTagID = -1;
@@ -188,81 +191,125 @@ public class RDXBlast extends LinearOpMode
         backright.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         backright.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
 
-        slides = hardwareMap.get(DcMotorEx.class, "slides");
-        slides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        slides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        slides.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        leftSlides = hardwareMap.get(DcMotorEx.class, "left slides");
+        leftSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        leftSlides.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        rightSlides = hardwareMap.get(DcMotorEx.class, "right slides");
+        rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rightSlides.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
 
         leftHanger = hardwareMap.get(DcMotorEx.class, "left hanger");
         leftHanger.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         leftHanger.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        leftHanger.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        leftHanger.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
 
         rightHanger = hardwareMap.get(DcMotorEx.class, "right hanger");
         rightHanger.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         rightHanger.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        rightHanger.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-
+        rightHanger.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
 
         // May need to change this depending on how robot behaves
-        frontleft.setDirection(DcMotorEx.Direction.FORWARD);
+        frontleft.setDirection(DcMotorEx.Direction.REVERSE);
         backleft.setDirection(DcMotorEx.Direction.FORWARD);
-        backright.setDirection(DcMotorEx.Direction.REVERSE);
-        frontright.setDirection(DcMotorEx.Direction.REVERSE);
-        slides.setDirection(DcMotorEx.Direction.FORWARD);
-        leftHanger.setDirection(DcMotorEx.Direction.REVERSE);
-        rightHanger.setDirection(DcMotorEx.Direction.FORWARD);
+        backright.setDirection(DcMotorEx.Direction.FORWARD);
+        frontright.setDirection(DcMotorEx.Direction.FORWARD);
+        leftSlides.setDirection(DcMotorEx.Direction.FORWARD);
+        rightSlides.setDirection(DcMotorEx.Direction.REVERSE);
+        leftHanger.setDirection(DcMotorEx.Direction.FORWARD);
+        rightHanger.setDirection(DcMotorEx.Direction.REVERSE);
 
-
-
+        // Initialize Servos
         leftArm = hardwareMap.get(Servo.class, "left arm");
-        leftArm.setDirection(Servo.Direction.REVERSE);
-        leftArm.setPosition(SampleMecanumDrive.LEFT_ARM_HOME);
+        leftArm.setDirection(Servo.Direction.FORWARD);
+        leftArm.setPosition(BotValues.LEFT_ARM_HOME);
 
         rightArm = hardwareMap.get(Servo.class, "right arm");
         rightArm.setDirection(Servo.Direction.FORWARD);
-        rightArm.setPosition(SampleMecanumDrive.RIGHT_ARM_HOME);
+        rightArm.setPosition(BotValues.RIGHT_ARM_HOME);
 
-        leftClawTurner = hardwareMap.get(Servo.class, "left claw turner");
-        leftClawTurner.setDirection(Servo.Direction.REVERSE);
-        leftClawTurner.setPosition(SampleMecanumDrive.LEFT_CLAW_TURNER_HOME);
+        leftWrist = hardwareMap.get(Servo.class, "left wrist");
+        leftWrist.setDirection(Servo.Direction.FORWARD);
+        leftWrist.setPosition(BotValues.LEFT_WRIST_HOME);
 
-        rightClawTurner = hardwareMap.get(Servo.class, "right claw turner");
-        rightClawTurner.setDirection(Servo.Direction.FORWARD);
-        rightClawTurner.setPosition(SampleMecanumDrive.RIGHT_CLAW_TURNER_HOME);
+        rightWrist = hardwareMap.get(Servo.class, "right wrist");
+        rightWrist.setDirection(Servo.Direction.FORWARD);
+        rightWrist.setPosition(BotValues.RIGHT_WRIST_HOME);
 
-        leftClawOpener = hardwareMap.get(Servo.class, "left claw opener");
-        leftClawOpener.setDirection(Servo.Direction.FORWARD);
-        leftClawOpener.setPosition(SampleMecanumDrive.LEFT_CLAW_OPENER_HOME);
+        leftClaw = hardwareMap.get(Servo.class, "left claw");
+        leftClaw.setDirection(Servo.Direction.FORWARD);
+        leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);
 
-        rightClawOpener = hardwareMap.get(Servo.class, "right claw opener");
-        rightClawOpener.setDirection(Servo.Direction.REVERSE);
-        rightClawOpener.setPosition(SampleMecanumDrive.RIGHT_CLAW_OPENER_HOME);
-
-        leftHangerRelease = hardwareMap.get(Servo.class, "left hanger release");
-        leftHangerRelease.setDirection(Servo.Direction.FORWARD);
-        leftHangerRelease.setPosition(SampleMecanumDrive.LEFT_HANGER_RELEASE_HOME);
-
-        rightHangerRelease = hardwareMap.get(Servo.class, "right hanger release");
-        rightHangerRelease.setDirection(Servo.Direction.REVERSE);
-        rightHangerRelease.setPosition(SampleMecanumDrive.RIGHT_HANGER_RELEASE_HOME);
+        rightClaw = hardwareMap.get(Servo.class, "right claw");
+        rightClaw.setDirection(Servo.Direction.FORWARD);
+        rightClaw.setPosition(BotValues.RIGHT_CLAW_HOME);
 
         planeLauncher = hardwareMap.get(Servo.class, "plane launcher");
-        planeLauncher.setDirection(Servo.Direction.REVERSE);
-        planeLauncher.setPosition(SampleMecanumDrive.PLANE_LAUNCHER_HOME);
-
-        planeLock = hardwareMap.get(Servo.class, "plane lock");
-        planeLock.setDirection(Servo.Direction.FORWARD);
-        planeLock.setPosition(SampleMecanumDrive.PLANE_LOCK_HOME);
+        planeLauncher.setDirection(Servo.Direction.FORWARD);
+        planeLauncher.setPosition(BotValues.PLANE_LAUNCHER_HOME);
     }
 
     public void initSensors()
     {
+        lastAngles = new Orientation();
+        imu = hardwareMap.get(BHI260IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        imu.initialize(parameters);
+        currentAngle = 0.0;
         touchSensor = hardwareMap.get(TouchSensor.class, "touch sensor");
         timer = new ElapsedTime();
-        backdropSwitch = hardwareMap.get(TouchSensor.class, "backdrop switch");
-        leftDistanceSensor = hardwareMap.get(DistanceSensor.class, "left distance sensor");
-        rightDistanceSensor = hardwareMap.get(DistanceSensor.class, "right distance sensor");
+        distanceSensor = hardwareMap.get(DistanceSensor.class, "distance sensor");
+        voltageSensor = hardwareMap.voltageSensor.iterator().next();
+    }
+
+    public void initStates()
+    {
+        autoState = AutoState.RED_BACKDROP;
+        driveState = DriveState.INITIAL;
+        slideState = SlideState.INITIAL;
+        armState = ArmState.INTAKE;
+        wristState = WristState.FOLD;
+    }
+
+    public void finalizeAutoState()
+    {
+        telemetry.addData("Please Select Alliance", "B for Red, X for Blue");
+        telemetry.addData("Please Select Side", "Up Arrow for Backdrop Side, Down Arrow for Audience Side");
+        telemetry.update();
+
+        while (!(gamepad1.b || gamepad1.x))
+        {
+            telemetry.addData("Please Select Alliance", "B for Red, X for Blue");
+            telemetry.addData("Please Select Side", "Up Arrow for Backdrop Side, Down Arrow for Audience Side");
+            telemetry.update();
+        }
+        while (!(gamepad1.dpad_up || gamepad1.dpad_down))
+        {
+            telemetry.addData("Please Select Alliance", "B for Red, X for Blue");
+            telemetry.addData("Please Select Side", "Up Arrow for Backdrop Side, Down Arrow for Audience Side");
+            telemetry.update();
+        }
+
+        if (gamepad1.b && gamepad1.dpad_down) {autoState = AutoState.RED_AUDIENCE;}
+        else if (gamepad1.x && gamepad1.dpad_up) {autoState = AutoState.BLUE_BACKDROP;}
+        else if (gamepad1.x && gamepad1.dpad_down) {autoState = AutoState.BLUE_AUDIENCE;}
+        else if (gamepad1.b && gamepad1.dpad_up) {autoState = AutoState.RED_BACKDROP;}
+        else
+        {
+            while (opModeInInit() || opModeIsActive())
+            {
+                telemetry.addData("Error", "Alliance and Side Not Selected Correctly");
+                telemetry.addLine("Please stop and restart OpMode");
+                telemetry.update();
+            }
+        }
+
+        if (autoState == AutoState.RED_BACKDROP) {telemetry.addData("Red Alliance", "Backdrop Side");}
+        else if (autoState == AutoState.RED_AUDIENCE) {telemetry.addData("Red Alliance", "Audience Side");}
+        else if (autoState == AutoState.BLUE_AUDIENCE) {telemetry.addData("Blue Alliance", "Audience Side");}
+        else if (autoState == AutoState.BLUE_BACKDROP) {telemetry.addData("Blue Alliance", "Backdrop Side");}
     }
 
     public void recognizePosition()
@@ -394,9 +441,24 @@ public class RDXBlast extends LinearOpMode
     }
 
 
-    public void triggerActions()
+    public void triggerActionsRedBack()
     {
         // Drivetrain FSM
+
+    }
+
+    public void triggerActionsRedAudience()
+    {
+
+    }
+
+    public void triggerActionsBlueBack()
+    {
+
+    }
+
+    public void triggerActionsBlueAudience()
+    {
 
     }
 }
