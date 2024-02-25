@@ -76,7 +76,7 @@ public class ExplosiveTachyon extends LinearOpMode
         {
             updateControls();
             analogDrive();
-            //triggerActions();
+            triggerActions();
         }
     }
 

@@ -41,7 +41,7 @@ public class BotValues
     // Drivetrain
     public static double pow = voltageNormalize(0.77);
     public static double slowPow = voltageNormalize(0.2);
-    //public final static double QUICK_TURN_ANGLE = 45;
+    public final static double QUICK_TURN_ANGLE = 45;
 
     // Hanging
     public static double hangPow = voltageNormalize(1);
