@@ -5,6 +5,7 @@ import android.util.Size;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -28,8 +29,9 @@ import org.tensorflow.lite.task.vision.classifier.Classifications;
 import java.io.File;
 import java.util.List;
 
-@Autonomous (name = "Detonate FR")
-public class DetonateFR extends LinearOpMode
+@Disabled
+//@Autonomous (name = "red front old")
+public class redFrontOld extends LinearOpMode
 {
     // Constants
     private static final double BACKDROP_SAFETY_DISTANCE = 12.0; // in inches

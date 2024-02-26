@@ -5,6 +5,7 @@ import android.util.Size;
 
 import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -29,7 +30,8 @@ import org.tensorflow.lite.task.vision.classifier.Classifications;
 import java.io.File;
 import java.util.List;
 
-@Autonomous (name = "Tetracarbon B-Bay")
+@Disabled
+//@Autonomous (name = "Tetracarbon B-Bay")
 public class TetracarbonBBay extends LinearOpMode
 {
     // Constants
