@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.Autonomous;
 import android.graphics.Bitmap;
 import android.util.Size;
 
+import com.acmerobotics.roadrunner.drive.Drive;
 import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -104,7 +105,12 @@ public class RDXBlast extends LinearOpMode
         telemetry.update();
 
         // Recognize position of prop on spike marks during Init, takes the latest recognition
-        while (opModeInInit()) {recognizePosition();}
+        while (opModeInInit())
+        {
+            recognizePosition();
+            telemetry.addData("Recognition", label);
+            telemetry.update();
+        }
         desiredTagID = label;
 
         // Clear up memory
@@ -444,7 +450,66 @@ public class RDXBlast extends LinearOpMode
     public void triggerActionsRedBack()
     {
         // Drivetrain FSM
+        if (driveState == DriveState.INITIAL)
+        {
+            if (label != -1) {driveState = DriveState.TO_SPIKE_MARK;}
+        }
+        else if (driveState == DriveState.TO_SPIKE_MARK)
+        {
 
+        }
+        else if (driveState == DriveState.AT_SPIKE_MARK)
+        {
+
+        }
+        else if (driveState == DriveState.TO_DETECTION_SPOT)
+        {
+
+        }
+        else if (driveState == DriveState.LOOKING_FOR_APRIL_TAG)
+        {
+
+        }
+        else if (driveState == DriveState.PREPARE_YELLOW_OUTTAKE)
+        {
+
+        }
+        else if (driveState == DriveState.SCORE_YELLOW)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_1)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_2)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_3)
+        {
+
+        }
+        else if (driveState == DriveState.AT_STACK)
+        {
+
+        }
+        else if (driveState == DriveState.TO_BACKDROP)
+        {
+
+        }
+        else if (driveState == DriveState.AT_BACKDROP)
+        {
+
+        }
+        else if (driveState == DriveState.PARKING)
+        {
+
+        }
+        else if (driveState == DriveState.PARKED)
+        {
+
+        }
     }
 
     public void triggerActionsRedAudience()
