@@ -4,6 +4,8 @@ import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_ACCEL;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_ANG_ACCEL;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_ANG_VEL;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MAX_VEL;
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.MOTOR_VELO_PID;
+import static org.firstinspires.ftc.teamcode.drive.DriveConstants.RUN_USING_ENCODER;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.TRACK_WIDTH;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.encoderTicksToInches;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.kA;
@@ -15,6 +17,7 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.drive.DriveSignal;
 import com.acmerobotics.roadrunner.drive.MecanumDrive;
+import com.acmerobotics.roadrunner.followers.HolonomicPIDVAFollower;
 import com.acmerobotics.roadrunner.followers.TrajectoryFollower;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
@@ -25,16 +28,29 @@ import com.acmerobotics.roadrunner.trajectory.constraints.MinVelocityConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.ProfileAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
 import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
+import com.qualcomm.hardware.bosch.BHI260IMU;
+import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.teamcode.TeleOp.BotValues;
+import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner;
+import org.firstinspires.ftc.teamcode.util.LynxModuleUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,18 +74,70 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
 
     private TrajectoryFollower follower;
 
-    private DcMotorEx frontleft, backleft, backright, frontright;
     private List<DcMotorEx> driveMotors;
-
-    private IMU imu;
-    private VoltageSensor batteryVoltageSensor;
 
     private List<Integer> lastEncPositions = new ArrayList<>();
     private List<Integer> lastEncVels = new ArrayList<>();
 
-    public ExplosiveTachyonicParticle()
+    // Motors
+    public DcMotorEx frontleft, backright, backleft, frontright;
+    public DcMotorEx leftSlides, rightSlides;
+    public DcMotorEx leftHanger, rightHanger;
+    public Servo leftArm, rightArm;
+    public Servo leftWrist, rightWrist;
+    public Servo leftClaw, rightClaw;
+    public Servo planeLauncher;
+
+    // Sensors
+    public IMU imu;
+    public Orientation lastAngles;
+    public double currentAngle;
+    public TouchSensor touchSensor;
+    public ElapsedTime timer;
+    public static DistanceSensor distanceSensor;
+    public static VoltageSensor voltageSensor;
+
+    // Positions
+    private double xPos; // in inches
+    private double yPos; // in inches
+    private int slidePos;
+
+    public ExplosiveTachyonicParticle(HardwareMap hardwareMap)
     {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
+        follower = new HolonomicPIDVAFollower(TRANSLATIONAL_PID, TRANSLATIONAL_PID, HEADING_PID,
+                new Pose2d(0.5, 0.5, Math.toRadians(5.0)), 0.5);
+
+        LynxModuleUtil.ensureMinimumFirmwareVersion(hardwareMap);
+
+        for (LynxModule module : hardwareMap.getAll(LynxModule.class))
+        {
+            module.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
+        initMotors(hardwareMap);
+        initSensors(hardwareMap);
+
+        driveMotors = Arrays.asList(frontleft, backleft, backright, frontright);
+
+        for (DcMotorEx motor : driveMotors)
+        {
+            MotorConfigurationType motorConfigurationType = motor.getMotorType().clone();
+            motorConfigurationType.setAchieveableMaxRPMFraction(1.0);
+            motor.setMotorType(motorConfigurationType);
+        }
+
+        if (MOTOR_VELO_PID != null) {setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, MOTOR_VELO_PID);}
+
+        List<Integer> lastTrackingEncPositions = new ArrayList<>();
+        List<Integer> lastTrackingEncVels = new ArrayList<>();
+
+        // TODO: if desired, use setLocalizer() to change the localization method
+        // setLocalizer(new StandardTrackingWheelLocalizer(hardwareMap, lastTrackingEncPositions, lastTrackingEncVels));
+
+        trajectorySequenceRunner = new TrajectorySequenceRunner(
+                follower, HEADING_PID, voltageSensor,
+                lastEncPositions, lastEncVels, lastTrackingEncPositions, lastTrackingEncVels
+        );
     }
 
     public TrajectoryBuilder trajectoryBuilder(Pose2d startPose)
@@ -169,7 +237,7 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
     {
         PIDFCoefficients compensatedCoefficients = new PIDFCoefficients(
                 coefficients.p, coefficients.i, coefficients.d,
-                coefficients.f * 12 / batteryVoltageSensor.getVoltage()
+                coefficients.f * 12 / voltageSensor.getVoltage()
         );
 
         for (DcMotorEx motor : driveMotors)
@@ -243,6 +311,102 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         frontright.setPower(fR);
         backleft.setPower(bL);
         backright.setPower(bR);
+    }
+
+    public void initMotors(HardwareMap hardwareMap)
+    {
+        // Initialize Motors
+        frontleft = hardwareMap.get(DcMotorEx.class, "front left");
+        frontleft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        frontleft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        frontleft.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        frontright = hardwareMap.get(DcMotorEx.class, "front right");
+        frontright.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        frontright.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        frontright.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        backleft = hardwareMap.get(DcMotorEx.class, "back left");
+        backleft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        backleft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        backleft.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        backright = hardwareMap.get(DcMotorEx.class, "back right");
+        backright.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        backright.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        backright.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        leftSlides = hardwareMap.get(DcMotorEx.class, "left slides");
+        leftSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        leftSlides.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        rightSlides = hardwareMap.get(DcMotorEx.class, "right slides");
+        rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rightSlides.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        leftHanger = hardwareMap.get(DcMotorEx.class, "left hanger");
+        leftHanger.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        leftHanger.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        leftHanger.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        rightHanger = hardwareMap.get(DcMotorEx.class, "right hanger");
+        rightHanger.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        rightHanger.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        rightHanger.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
+
+        // May need to change this depending on how robot behaves
+        frontleft.setDirection(DcMotorEx.Direction.REVERSE);
+        backleft.setDirection(DcMotorEx.Direction.FORWARD);
+        backright.setDirection(DcMotorEx.Direction.FORWARD);
+        frontright.setDirection(DcMotorEx.Direction.FORWARD);
+        leftSlides.setDirection(DcMotorEx.Direction.FORWARD);
+        rightSlides.setDirection(DcMotorEx.Direction.REVERSE);
+        leftHanger.setDirection(DcMotorEx.Direction.FORWARD);
+        rightHanger.setDirection(DcMotorEx.Direction.REVERSE);
+
+        // Initialize Servos
+        leftArm = hardwareMap.get(Servo.class, "left arm");
+        leftArm.setDirection(Servo.Direction.FORWARD);
+        leftArm.setPosition(BotValues.LEFT_ARM_HOME);
+
+        rightArm = hardwareMap.get(Servo.class, "right arm");
+        rightArm.setDirection(Servo.Direction.FORWARD);
+        rightArm.setPosition(BotValues.RIGHT_ARM_HOME);
+
+        leftWrist = hardwareMap.get(Servo.class, "left wrist");
+        leftWrist.setDirection(Servo.Direction.FORWARD);
+        leftWrist.setPosition(BotValues.LEFT_WRIST_HOME);
+
+        rightWrist = hardwareMap.get(Servo.class, "right wrist");
+        rightWrist.setDirection(Servo.Direction.FORWARD);
+        rightWrist.setPosition(BotValues.RIGHT_WRIST_HOME);
+
+        leftClaw = hardwareMap.get(Servo.class, "left claw");
+        leftClaw.setDirection(Servo.Direction.FORWARD);
+        leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);
+
+        rightClaw = hardwareMap.get(Servo.class, "right claw");
+        rightClaw.setDirection(Servo.Direction.FORWARD);
+        rightClaw.setPosition(BotValues.RIGHT_CLAW_HOME);
+
+        planeLauncher = hardwareMap.get(Servo.class, "plane launcher");
+        planeLauncher.setDirection(Servo.Direction.FORWARD);
+        planeLauncher.setPosition(BotValues.PLANE_LAUNCHER_HOME);
+    }
+
+    public void initSensors(HardwareMap hardwareMap)
+    {
+        lastAngles = new Orientation();
+        imu = hardwareMap.get(BHI260IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        imu.initialize(parameters);
+        currentAngle = 0.0;
+        touchSensor = hardwareMap.get(TouchSensor.class, "touch sensor");
+        timer = new ElapsedTime();
+        distanceSensor = hardwareMap.get(DistanceSensor.class, "distance sensor");
+        voltageSensor = hardwareMap.voltageSensor.iterator().next();
     }
 
     @Override

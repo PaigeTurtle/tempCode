@@ -170,6 +170,7 @@ public class ExplosiveTachyon extends LinearOpMode
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
         imu.initialize(parameters);
         currentAngle = 0.0;
+        //resetAngle();
         touchSensor = hardwareMap.get(TouchSensor.class, "touch sensor");
         timer = new ElapsedTime();
         distanceSensor = hardwareMap.get(DistanceSensor.class, "distance sensor");
@@ -225,8 +226,8 @@ public class ExplosiveTachyon extends LinearOpMode
         slowBackward = gamepad1.dpad_down;
         slowLeft = gamepad1.dpad_left;
         slowRight = gamepad1.dpad_right;
-        counterClockwise = gamepad1.left_trigger > 0.25;
-        clockwise = gamepad1.right_trigger > 0.25;
+        counterClockwise = gamepad1.left_trigger > BotValues.turningDeadZone;
+        clockwise = gamepad1.right_trigger > BotValues.turningDeadZone;
         stopDrive = gamepad1.b;
         closeToBackdrop = distanceSensor.getDistance(DistanceUnit.INCH) > BotValues.BACKDROP_SAFETY_DISTANCE;
         launchAirplane = gamepad1.x;
@@ -294,41 +295,58 @@ public class ExplosiveTachyon extends LinearOpMode
 
     public void analogDrive()
     {
-        // Manual Acceleration/Deceleration
-        double forward = -1 * gamepad1.left_stick_y;
-        double strafe = gamepad1.left_stick_x;
-        double slope = (-1 * gamepad1.right_stick_y) / (gamepad1.right_stick_x + 0.000001);
-        double vertical = -1 * gamepad1.right_stick_y;
-        double diagonal = (vertical / Math.abs(vertical)) * (Math.sqrt(Math.pow((gamepad1.right_stick_y), 2) + Math.pow((gamepad1.right_stick_x), 2)));
+        // Manual Acceleration/Deceleration using joystick and triggers
 
-        double fLPower = forward + strafe;
-        double fRPower = forward - strafe;
-        double bLPower = forward - strafe;
-        double bRPower = forward + strafe;
-
-        if (slope > 0)
-        {
-            fLPower += diagonal;
-            bRPower += diagonal;
-        }
-        else
-        {
-            fRPower += diagonal;
-            bLPower += diagonal;
-        }
         if (stopDrive) {power(0);}
-        else if (closeToBackdrop)
+        /*else if (closeToBackdrop)
         {
-            if (this.forward) {power(BotValues.slowPow);}
+            if (forward) {power(BotValues.slowPow);}
             else if (backward) {power(-1 * BotValues.slowPow);}
             else if (left) {power(-1 * BotValues.slowPow, BotValues.slowPow, BotValues.slowPow, -1 * BotValues.slowPow);}
             else if (right) {power(BotValues.slowPow, -1 * BotValues.slowPow, -1 * BotValues.slowPow, BotValues.slowPow);}
-        }
+        }*/
         else if (slowForward) {power(BotValues.slowPow);}
         else if (slowBackward) {power(-1 * BotValues.slowPow);}
         else if (slowLeft) {power(-1 * BotValues.slowPow, BotValues.slowPow, BotValues.slowPow, -1 * BotValues.slowPow);}
         else if (slowRight) {power(BotValues.slowPow, -1 * BotValues.slowPow, -1 * BotValues.slowPow, BotValues.slowPow);}
-        else {power(Math.tanh(fLPower), Math.tanh(fRPower), Math.tanh(bLPower), Math.tanh(bRPower));}
+        else if (counterClockwise || clockwise)
+        {
+            // Turning
+            double counterclockwise = gamepad1.left_trigger;
+            double clockwise = gamepad1.right_trigger;
+
+            if (counterclockwise < BotValues.turningDeadZone) {counterclockwise = 0;}
+            if (clockwise < BotValues.turningDeadZone) {clockwise = 0;}
+
+            double fLPower = BotValues.voltageNormalize(clockwise - counterclockwise);
+            double fRPower = BotValues.voltageNormalize(counterclockwise - clockwise);
+            double bLPower = BotValues.voltageNormalize(clockwise - counterclockwise);
+            double bRPower = BotValues.voltageNormalize(counterclockwise - clockwise);
+
+            power(fLPower, fRPower, bLPower, bRPower);
+        }
+        else
+        {
+            // Axial Movement
+            double forward = -1 * gamepad1.left_stick_y;
+            double strafe = gamepad1.left_stick_x;
+            double theta = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+
+            if (theta - (int)(theta) >= 0.5) {theta = (int)(theta + 1);}
+            else {theta = (int)(theta);}
+
+            if (Math.abs(forward) < BotValues.driveStickDeadZone) {forward = 0;}
+            else {forward = (strafe * Math.sin(theta)) + (forward * Math.cos(theta));}
+            if (Math.abs(strafe) < BotValues.driveStickDeadZone) {strafe = 0;}
+            else {strafe = (strafe * Math.cos(theta)) - (forward * Math.sin(theta));}
+
+            double fLPower = BotValues.voltageNormalize(forward + strafe);
+            double fRPower = BotValues.voltageNormalize(forward - strafe);
+            double bLPower = BotValues.voltageNormalize(forward - strafe);
+            double bRPower = BotValues.voltageNormalize(forward + strafe);
+
+            power(fLPower, fRPower, bLPower, bRPower);
+        }
     }
 
     public void triggerActions()

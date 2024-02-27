@@ -49,26 +49,8 @@ public class DetonateFR extends LinearOpMode
     private int label, frameNum;
     private long inferenceTime;
 
-
-    // Motors
-    private DcMotorEx frontleft, backright, backleft, frontright;
-    private DcMotorEx leftSlides, rightSlides;
-    private DcMotorEx leftHanger, rightHanger;
-    private Servo leftArm, rightArm;
-    private Servo leftWrist, rightWrist;
-    private Servo leftClaw, rightClaw;
-    private Servo planeLauncher;
-
-
-    // Sensors
-    private IMU imu;
-    private Orientation lastAngles;
-    private double currentAngle;
-    private TouchSensor touchSensor;
-    private ElapsedTime timer;
-    public static DistanceSensor distanceSensor;
-    public static VoltageSensor voltageSensor;
-
+    // Robot
+    private ExplosiveTachyonicParticle c4;
 
     // Positions
     private double xPos; // in inches
@@ -97,9 +79,8 @@ public class DetonateFR extends LinearOpMode
     public void runOpMode()
     {
         // Initialization
+        c4 = new ExplosiveTachyonicParticle(hardwareMap);
         initCV();
-        initMotors();
-        initSensors();
         finalizeAutoState();
         telemetry.addData("C4", "Ready");
         telemetry.update();
@@ -172,102 +153,6 @@ public class DetonateFR extends LinearOpMode
         targetFound = false;
         desiredTag  = null;
         currentDetections = null;
-    }
-
-    public void initMotors()
-    {
-        // Initialize Motors
-        frontleft = hardwareMap.get(DcMotorEx.class, "front left");
-        frontleft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        frontleft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        frontleft.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        frontright = hardwareMap.get(DcMotorEx.class, "front right");
-        frontright.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        frontright.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        frontright.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        backleft = hardwareMap.get(DcMotorEx.class, "back left");
-        backleft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        backleft.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        backleft.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        backright = hardwareMap.get(DcMotorEx.class, "back right");
-        backright.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        backright.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        backright.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        leftSlides = hardwareMap.get(DcMotorEx.class, "left slides");
-        leftSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        leftSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        leftSlides.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        rightSlides = hardwareMap.get(DcMotorEx.class, "right slides");
-        rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        rightSlides.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        leftHanger = hardwareMap.get(DcMotorEx.class, "left hanger");
-        leftHanger.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        leftHanger.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        leftHanger.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        rightHanger = hardwareMap.get(DcMotorEx.class, "right hanger");
-        rightHanger.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        rightHanger.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-        rightHanger.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
-
-        // May need to change this depending on how robot behaves
-        frontleft.setDirection(DcMotorEx.Direction.REVERSE);
-        backleft.setDirection(DcMotorEx.Direction.FORWARD);
-        backright.setDirection(DcMotorEx.Direction.FORWARD);
-        frontright.setDirection(DcMotorEx.Direction.FORWARD);
-        leftSlides.setDirection(DcMotorEx.Direction.FORWARD);
-        rightSlides.setDirection(DcMotorEx.Direction.REVERSE);
-        leftHanger.setDirection(DcMotorEx.Direction.FORWARD);
-        rightHanger.setDirection(DcMotorEx.Direction.REVERSE);
-
-        // Initialize Servos
-        leftArm = hardwareMap.get(Servo.class, "left arm");
-        leftArm.setDirection(Servo.Direction.FORWARD);
-        leftArm.setPosition(BotValues.LEFT_ARM_HOME);
-
-        rightArm = hardwareMap.get(Servo.class, "right arm");
-        rightArm.setDirection(Servo.Direction.FORWARD);
-        rightArm.setPosition(BotValues.RIGHT_ARM_HOME);
-
-        leftWrist = hardwareMap.get(Servo.class, "left wrist");
-        leftWrist.setDirection(Servo.Direction.FORWARD);
-        leftWrist.setPosition(BotValues.LEFT_WRIST_HOME);
-
-        rightWrist = hardwareMap.get(Servo.class, "right wrist");
-        rightWrist.setDirection(Servo.Direction.FORWARD);
-        rightWrist.setPosition(BotValues.RIGHT_WRIST_HOME);
-
-        leftClaw = hardwareMap.get(Servo.class, "left claw");
-        leftClaw.setDirection(Servo.Direction.FORWARD);
-        leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);
-
-        rightClaw = hardwareMap.get(Servo.class, "right claw");
-        rightClaw.setDirection(Servo.Direction.FORWARD);
-        rightClaw.setPosition(BotValues.RIGHT_CLAW_HOME);
-
-        planeLauncher = hardwareMap.get(Servo.class, "plane launcher");
-        planeLauncher.setDirection(Servo.Direction.FORWARD);
-        planeLauncher.setPosition(BotValues.PLANE_LAUNCHER_HOME);
-    }
-
-    public void initSensors()
-    {
-        lastAngles = new Orientation();
-        imu = hardwareMap.get(BHI260IMU.class, "imu");
-        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
-        imu.initialize(parameters);
-        currentAngle = 0.0;
-        touchSensor = hardwareMap.get(TouchSensor.class, "touch sensor");
-        timer = new ElapsedTime();
-        distanceSensor = hardwareMap.get(DistanceSensor.class, "distance sensor");
-        voltageSensor = hardwareMap.voltageSensor.iterator().next();
     }
 
     public void initStates()
