@@ -3,9 +3,7 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
-import org.firstinspires.ftc.teamcode.Autonomous.DetonateFR;
 import org.firstinspires.ftc.teamcode.Autonomous.ExplosiveTachyonicParticle;
-import org.firstinspires.ftc.teamcode.Autonomous.RDXBlast;
 
 public class BotValues
 {

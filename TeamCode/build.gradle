@@ -40,8 +40,8 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.3'
     //runtimeOnly 'org.tensorflow:tensorflow-lite:2.14.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
-    //implementation('org.tensorflow:tensorflow-lite:2.14.0')
-    implementation ('org.tensorflow:tensorflow-lite:+')
+    implementation('org.tensorflow:tensorflow-lite:2.14.0')
+    //implementation ('org.tensorflow:tensorflow-lite:+')
     //implementation('org.tensorflow:tensorflow-lite-gpu:2.0.0')
     implementation('org.tensorflow:tensorflow-lite-support:0.4.4') { changing = true }
     implementation 'org.firstinspires.ftc:Tfod:9.0.1'
