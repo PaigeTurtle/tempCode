@@ -4,6 +4,9 @@ import android.graphics.Bitmap;
 import android.util.Size;
 
 import com.acmerobotics.roadrunner.drive.Drive;
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -41,21 +44,32 @@ public class DetonateFR extends LinearOpMode
     private ImageRecognition classifier;
     private AprilTagProcessor aprilTagProcessor;
     private boolean targetFound;
-    private AprilTagDetection desiredTag;
+    private AprilTagDetection desiredAprilTag;
     private List<Classifications> results;
     private List<Category> categories;
     private List<AprilTagDetection> currentDetections;
-    private int desiredTagID;
+    private int desiredAprilTagID;
     private int label, frameNum;
     private long inferenceTime;
 
+
     // Robot
     private ExplosiveTachyonicParticle c4;
+
 
     // Positions
     private double xPos; // in inches
     private double yPos; // in inches
     private int slidePos;
+
+
+    // Road Runner
+    Pose2d startPose, newLastPose;
+    Trajectory trajectory1, trajectory2, trajectory3;
+    double turnAngle1, turnAngle2;
+    double waitTime1;
+    ElapsedTime waitTimer1;
+
 
     // States
     private enum AutoState {RED_BACKDROP, RED_AUDIENCE, BLUE_BACKDROP, BLUE_AUDIENCE};
@@ -81,7 +95,10 @@ public class DetonateFR extends LinearOpMode
         // Initialization
         c4 = new ExplosiveTachyonicParticle(hardwareMap);
         initCV();
+        initStates();
+        initDriveSequences();
         finalizeAutoState();
+
         telemetry.addData("C4", "Ready");
         telemetry.update();
 
@@ -92,39 +109,28 @@ public class DetonateFR extends LinearOpMode
             telemetry.addData("Recognition", label);
             telemetry.update();
         }
-        desiredTagID = label;
+        desiredAprilTagID = label;
+        finalizeDriveSequence(autoState, label);
 
         // Clear up memory
         classifier.clearImageClassifier();
 
-        while (opModeIsActive())
+        if (autoState == AutoState.RED_AUDIENCE)
         {
-            if (autoState == AutoState.RED_AUDIENCE) {triggerActionsRedAudience();}
-            else if (autoState == AutoState.BLUE_BACKDROP) {triggerActionsBlueBack();}
-            else if (autoState == AutoState.BLUE_AUDIENCE) {triggerActionsBlueAudience();}
-            else {triggerActionsRedBack();}
+            while (opModeIsActive() && !(isStopRequested())) {triggerActionsRedAudience();}
         }
-
-        // Place Purple Pixel on Spike Mark
-        if (label == 0)
+        else if (autoState == AutoState.BLUE_BACKDROP)
         {
-            // left spike mark
-
+            while (opModeIsActive() && !(isStopRequested())) {triggerActionsBlueBack();}
         }
-        else if (label == 2)
+        else if (autoState == AutoState.BLUE_AUDIENCE)
         {
-            // right
-
+            while (opModeIsActive() && !(isStopRequested())) {triggerActionsBlueAudience();}
         }
-        else
+        else if (autoState == AutoState.RED_BACKDROP)
         {
-            // center
-
+            while (opModeIsActive() && !(isStopRequested())) {triggerActionsRedBack();}
         }
-
-
-        // Act on prop recognition
-        goToCorrectAprilTag();
     }
 
     // Computer Vision Methods
@@ -149,9 +155,9 @@ public class DetonateFR extends LinearOpMode
         classifier = new ImageRecognition(BotValues.INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, BotValues.MODEL_NAME);
         frameNum = 0;
         label = -1;
-        desiredTagID = -1;
+        desiredAprilTagID = -1;
         targetFound = false;
-        desiredTag  = null;
+        desiredAprilTag  = null;
         currentDetections = null;
     }
 
@@ -162,6 +168,43 @@ public class DetonateFR extends LinearOpMode
         slideState = SlideState.INITIAL;
         armState = ArmState.INTAKE;
         wristState = WristState.FOLD;
+    }
+
+    public void initDriveSequences()
+    {
+        // Define our start pose
+        // This assumes we start at x: 15, y: 10, heading: 180 degrees
+        startPose = new Pose2d(15, 10, Math.toRadians(180));
+        c4.setPoseEstimate(startPose); // set initial pose
+        // First trajectory
+        trajectory1 = c4.trajectoryBuilder(startPose)
+                .splineTo(new Vector2d(45, -20), Math.toRadians(90))
+                .build();
+        // Second trajectory
+        // Ensure that we call trajectory1.end() as the start for this one
+        trajectory2 = c4.trajectoryBuilder(trajectory1.end())
+                .lineTo(new Vector2d(45, 0))
+                .build();
+        // Define the angle to turn at
+        turnAngle1 = Math.toRadians(-270);
+        // Third trajectory
+        // We have to define a new end pose for the start of trajectory3 because we can't just call trajectory2.end()
+        // Since there was a point turn before that
+        // So we just take the pose from trajectory2.end(), add the previous turn angle to it
+        newLastPose = trajectory2.end().plus(new Pose2d(0, 0, turnAngle1));
+        trajectory3 = c4.trajectoryBuilder(newLastPose)
+                .lineToConstantHeading(new Vector2d(-15, 0))
+                .build();
+        // Define a 1.5 second wait time
+        waitTime1 = 1.5;
+        waitTimer1 = new ElapsedTime();
+        // Define the angle for turn 2
+        turnAngle2 = Math.toRadians(720);
+    }
+
+    public void finalizeDriveSequence(AutoState stateOfAuto, int propPosition)
+    {
+
     }
 
     public void finalizeAutoState()
@@ -189,7 +232,7 @@ public class DetonateFR extends LinearOpMode
         else if (gamepad1.b && gamepad1.dpad_up) {autoState = AutoState.RED_BACKDROP;}
         else
         {
-            while (opModeInInit() || opModeIsActive())
+            while ((opModeInInit() || opModeIsActive()) && !(isStopRequested()))
             {
                 telemetry.addData("Error", "Alliance and Side Not Selected Correctly");
                 telemetry.addLine("Please stop and restart OpMode");
@@ -262,11 +305,11 @@ public class DetonateFR extends LinearOpMode
         for (AprilTagDetection detection : currentDetections)
         {
             if (targetFound) {break;}
-            else if (detection.metadata != null && detection.id == desiredTagID)
+            else if (detection.metadata != null && detection.id == desiredAprilTagID)
             {
                 targetFound = true;
                 telemetry.addLine("ID: " + detection.id + ", " + detection.metadata.name);
-                desiredTag = detection;
+                desiredAprilTag = detection;
             }
             else
             {

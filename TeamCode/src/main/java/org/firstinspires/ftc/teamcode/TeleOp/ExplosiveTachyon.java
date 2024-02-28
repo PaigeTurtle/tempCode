@@ -34,6 +34,7 @@ public class ExplosiveTachyon extends LinearOpMode
     private IMU imu;
     private Orientation lastAngles;
     private double currentAngle;
+    private double startingAngle;
     private TouchSensor touchSensor;
     private ElapsedTime timer;
     private int slidePos;
@@ -72,7 +73,7 @@ public class ExplosiveTachyon extends LinearOpMode
         telemetry.update();
 
         waitForStart();
-        while (opModeIsActive())
+        while (opModeIsActive() && !(isStopRequested()))
         {
             updateControls();
             analogDrive();
@@ -170,6 +171,7 @@ public class ExplosiveTachyon extends LinearOpMode
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.RIGHT, RevHubOrientationOnRobot.UsbFacingDirection.UP));
         imu.initialize(parameters);
         currentAngle = 0.0;
+        startingAngle = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
         //resetAngle();
         touchSensor = hardwareMap.get(TouchSensor.class, "touch sensor");
         timer = new ElapsedTime();
@@ -328,17 +330,21 @@ public class ExplosiveTachyon extends LinearOpMode
         else
         {
             // Axial Movement
-            double forward = -1 * gamepad1.left_stick_y;
-            double strafe = gamepad1.left_stick_x;
-            double theta = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+            double y = -1 * gamepad1.left_stick_y;
+            double x = gamepad1.left_stick_x;
+            double theta = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - startingAngle;
+            if (theta > 180) {theta -= 360;}
+            else if (theta <= -180) {theta += 360;}
+            double forward, strafe;
 
-            if (theta - (int)(theta) >= 0.5) {theta = (int)(theta + 1);}
-            else {theta = (int)(theta);}
+            if ((BotValues.angleRoundingPlace * theta) - (int)(BotValues.angleRoundingPlace * theta) >= 0.5)
+                {theta = ((int)((BotValues.angleRoundingPlace * theta) + 1)) / BotValues.angleRoundingPlace;}
+            else {theta = ((int)(BotValues.angleRoundingPlace * theta)) / BotValues.angleRoundingPlace;}
 
-            if (Math.abs(forward) < BotValues.driveStickDeadZone) {forward = 0;}
-            else {forward = (strafe * Math.sin(theta)) + (forward * Math.cos(theta));}
-            if (Math.abs(strafe) < BotValues.driveStickDeadZone) {strafe = 0;}
-            else {strafe = (strafe * Math.cos(theta)) - (forward * Math.sin(theta));}
+            if (Math.abs(y) < BotValues.driveStickDeadZone) {forward = 0;}
+            else {forward = (x * Math.sin(theta)) + (y * Math.cos(theta));}
+            if (Math.abs(x) < BotValues.driveStickDeadZone) {strafe = 0;}
+            else {strafe = (x * Math.cos(theta)) - (y * Math.sin(theta));}
 
             double fLPower = BotValues.voltageNormalize(forward + strafe);
             double fRPower = BotValues.voltageNormalize(forward - strafe);
