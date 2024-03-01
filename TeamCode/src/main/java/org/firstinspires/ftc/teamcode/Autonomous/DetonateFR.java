@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.TeleOp.BotValues;
+import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionPortalImpl;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -48,15 +49,20 @@ public class DetonateFR extends LinearOpMode
     // Positions
     private double xPos; // in inches
     private double yPos; // in inches
+    private Pose2d currentPose;
     private int slidePos;
 
-
-    // Road Runner
-    Pose2d startPose, newLastPose;
-    Trajectory trajectory1, trajectory2, trajectory3;
-    double turnAngle1, turnAngle2;
-    double waitTime1;
-    ElapsedTime waitTimer1;
+    // Trajectories
+    Trajectory toLeftSpikeMarkRA, toCenterSpikeMarkRA, toRightSpikeMarkRA;
+    Trajectory toLeftSpikeMarkRB, toCenterSpikeMarkRB, toRightSpikeMarkRB;
+    Trajectory toLeftSpikeMarkBA, toCenterSpikeMarkBA, toRightSpikeMarkBA;
+    Trajectory toLeftSpikeMarkBB, toCenterSpikeMarkBB, toRightSpikeMarkBB;
+    Trajectory toBackdropRedLeft, toBackdropRedCenter, toBackdropRedRight;
+    Trajectory toBackdropBlueLeft, toBackdropBlueCenter, toBackdropBlueRight;
+    Trajectory toStack1, toStack2, toStack3, toStack4, toStack5, toStack6;
+    Trajectory toRedAprilTagDetectionSpot, toBlueAprilTagDetectionSpot, lastTrajectory;
+    Trajectory lineToRedAprilTagDetectionSpot, lineToBlueAprilTagDetectionSpot, lineToStack4;
+    Trajectory toRedParkingLeft, toRedParkingRight, toBlueParkingLeft, toBlueParkingRight;
 
 
     // States
@@ -65,7 +71,7 @@ public class DetonateFR extends LinearOpMode
     private enum DriveState
     {
         INITIAL, TO_SPIKE_MARK, AT_SPIKE_MARK, TO_DETECTION_SPOT, LOOKING_FOR_APRIL_TAG, PREPARE_YELLOW_OUTTAKE, SCORE_YELLOW,
-        TO_STACK_1, TO_STACK_2, TO_STACK_3, AT_STACK, TO_BACKDROP, AT_BACKDROP, PARKING, PARKED;
+        TO_STACK_1, TO_STACK_2, TO_STACK_3, TO_STACK_4, TO_STACK_5, TO_STACK_6, AT_STACK, TO_BACKDROP, AT_BACKDROP, PARKING, PARKED;
     }
     private DriveState driveState;
     // States
@@ -75,6 +81,10 @@ public class DetonateFR extends LinearOpMode
     private ArmState armState;
     private enum WristState {FOLD, TO_INTAKE, INTAKE, TO_DOWN_OUTTAKE, DOWN_OUTTAKE, TO_UP_OUTTAKE, UP_OUTTAKE, TO_FOLD};
     private WristState wristState;
+    private enum ClawState {OPEN, CLOSED};
+    private ClawState leftClawState, rightClawState;
+    private enum PixelState {NO_PIXELS, LEFT_ONLY, RIGHT_ONLY, FULL};
+    private PixelState pixelState;
 
 
     // Essentially the main method
@@ -156,38 +166,118 @@ public class DetonateFR extends LinearOpMode
         slideState = SlideState.INITIAL;
         armState = ArmState.INTAKE;
         wristState = WristState.FOLD;
+        leftClawState = ClawState.CLOSED;
+        rightClawState = ClawState.CLOSED;
+        pixelState = PixelState.FULL;
     }
 
     public void initDriveSequences()
     {
-        // Define our start pose
-        // This assumes we start at x: 15, y: 10, heading: 180 degrees
-        startPose = new Pose2d(15, 10, Math.toRadians(180));
-        c4.setPoseEstimate(startPose); // set initial pose
-        // First trajectory
-        trajectory1 = c4.trajectoryBuilder(startPose)
-                .splineTo(new Vector2d(45, -20), Math.toRadians(90))
+        // Red Audience
+        currentPose = BotValues.startPose;
+        c4.setPoseEstimate(currentPose);
+        toLeftSpikeMarkRA = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.leftSpikeRA)
                 .build();
-        // Second trajectory
-        // Ensure that we call trajectory1.end() as the start for this one
-        trajectory2 = c4.trajectoryBuilder(trajectory1.end())
-                .lineTo(new Vector2d(45, 0))
+        toCenterSpikeMarkRA = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.centerSpikeRA)
                 .build();
-        // Define the angle to turn at
-        turnAngle1 = Math.toRadians(-270);
-        // Third trajectory
-        // We have to define a new end pose for the start of trajectory3 because we can't just call trajectory2.end()
-        // Since there was a point turn before that
-        // So we just take the pose from trajectory2.end(), add the previous turn angle to it
-        newLastPose = trajectory2.end().plus(new Pose2d(0, 0, turnAngle1));
-        trajectory3 = c4.trajectoryBuilder(newLastPose)
-                .lineToConstantHeading(new Vector2d(-15, 0))
+        toRightSpikeMarkRA = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.rightSpikeRA)
                 .build();
-        // Define a 1.5 second wait time
-        waitTime1 = 1.5;
-        waitTimer1 = new ElapsedTime();
-        // Define the angle for turn 2
-        turnAngle2 = Math.toRadians(720);
+        toLeftSpikeMarkRB = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.leftSpikeRB)
+                .build();
+        toCenterSpikeMarkRB = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.centerSpikeRB)
+                .build();
+        toRightSpikeMarkRB = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.rightSpikeRB)
+                .build();
+        toLeftSpikeMarkBA = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.leftSpikeBA)
+                .build();
+        toCenterSpikeMarkBA = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.centerSpikeBA)
+                .build();
+        toRightSpikeMarkBA = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.rightSpikeBA)
+                .build();
+        toLeftSpikeMarkBB = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.leftSpikeBB)
+                .build();
+        toCenterSpikeMarkBB = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.centerSpikeBB)
+                .build();
+        toRightSpikeMarkBB = c4.trajectoryBuilder(currentPose)
+                .lineToConstantHeading(BotValues.rightSpikeBB)
+                .build();
+        lineToStack4 = c4.trajectoryBuilder(currentPose)
+                .lineToLinearHeading(new Pose2d(BotValues.stack4.getX(), BotValues.stack4.getY(), Math.toRadians(90)))
+                .build();
+        toRedAprilTagDetectionSpot = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.aprilTagDetectionSpotRed, Math.toRadians(90))
+                .build();
+        lineToRedAprilTagDetectionSpot = c4.trajectoryBuilder(currentPose)
+                .lineToLinearHeading(new Pose2d(BotValues.aprilTagDetectionSpotRed.getX(), BotValues.aprilTagDetectionSpotRed.getY(), Math.toRadians(90)))
+                .build();
+        toBlueAprilTagDetectionSpot = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.aprilTagDetectionSpotBlue, Math.toRadians(90))
+                .build();
+        lineToBlueAprilTagDetectionSpot = c4.trajectoryBuilder(currentPose)
+                .lineToLinearHeading(new Pose2d(BotValues.aprilTagDetectionSpotBlue.getX(), BotValues.aprilTagDetectionSpotBlue.getY(), Math.toRadians(90)))
+                .build();
+        toStack1 = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.stack1, Math.toRadians(90))
+                .build();
+        toStack2 = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.stack2, Math.toRadians(90))
+                .build();
+        toStack3 = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.stack3, Math.toRadians(90))
+                .build();
+        toStack4 = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.stack4, Math.toRadians(90))
+                .build();
+        toStack5 = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.stack5, Math.toRadians(90))
+                .build();
+        toStack6 = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.stack6, Math.toRadians(90))
+                .build();
+        toBackdropRedLeft = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.backdropRedLeft, Math.toRadians(90))
+                .build();
+        toBackdropRedCenter = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.backdropRedCenter, Math.toRadians(90))
+                .build();
+        toBackdropRedRight = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.backdropRedRight, Math.toRadians(90))
+                .build();
+        toBackdropBlueLeft = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.backdropBlueLeft, Math.toRadians(90))
+                .build();
+        toBackdropBlueCenter = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.backdropBlueCenter, Math.toRadians(90))
+                .build();
+        toBackdropBlueRight = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.backdropBlueRight, Math.toRadians(90))
+                .build();
+        toRedParkingLeft = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.redParking1, Math.toRadians(90))
+                .build();
+        toRedParkingRight = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.redParking2, Math.toRadians(90))
+                .build();
+        toBlueParkingLeft = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.blueParking2, Math.toRadians(90))
+                .build();
+        toBlueParkingRight = c4.trajectoryBuilder(currentPose)
+                .splineToConstantHeading(BotValues.blueParking1, Math.toRadians(90))
+                .build();
+        TrajectorySequence sequence1 = c4.trajectorySequenceBuilder(currentPose)
+                .addTrajectory(toLeftSpikeMarkRA)
+                .build();
     }
 
     public void finalizeDriveSequence(AutoState stateOfAuto, int propPosition)
@@ -368,6 +458,102 @@ public class DetonateFR extends LinearOpMode
         // Drivetrain FSM
         if (driveState == DriveState.INITIAL)
         {
+            if (label == BotValues.LEFT)
+            {
+                driveState = DriveState.TO_SPIKE_MARK;
+                lastTrajectory = toLeftSpikeMarkRB;
+                c4.followTrajectoryAsync(toLeftSpikeMarkRB);
+            }
+            else if (label == BotValues.CENTER)
+            {
+                driveState = DriveState.TO_SPIKE_MARK;
+                lastTrajectory = toCenterSpikeMarkRB;
+                c4.followTrajectory(toCenterSpikeMarkRB);
+            }
+            else if (label == BotValues.RIGHT)
+            {
+                driveState = DriveState.TO_SPIKE_MARK;
+                lastTrajectory = toRightSpikeMarkRB;
+                c4.followTrajectoryAsync(toRightSpikeMarkRB);
+            }
+        }
+        else if (driveState == DriveState.TO_SPIKE_MARK)
+        {
+            if (!(c4.isBusy()))
+            {
+                driveState = DriveState.AT_SPIKE_MARK;
+                currentPose = lastTrajectory.end();
+            }
+        }
+        else if (driveState == DriveState.AT_SPIKE_MARK)
+        {
+            if (pixelState == PixelState.LEFT_ONLY)
+            {
+                driveState = DriveState.TO_DETECTION_SPOT;
+                lastTrajectory = lineToRedAprilTagDetectionSpot;
+                c4.followTrajectoryAsync(lineToRedAprilTagDetectionSpot);
+            }
+        }
+        else if (driveState == DriveState.TO_DETECTION_SPOT)
+        {
+            if (!(c4.isBusy()))
+            {
+                driveState = DriveState.LOOKING_FOR_APRIL_TAG;
+                currentPose = lastTrajectory.end();
+            }
+        }
+        else if (driveState == DriveState.LOOKING_FOR_APRIL_TAG)
+        {
+
+        }
+        else if (driveState == DriveState.PREPARE_YELLOW_OUTTAKE)
+        {
+
+        }
+        else if (driveState == DriveState.SCORE_YELLOW)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_4)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_5)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_6)
+        {
+
+        }
+        else if (driveState == DriveState.AT_STACK)
+        {
+
+        }
+        else if (driveState == DriveState.TO_BACKDROP)
+        {
+
+        }
+        else if (driveState == DriveState.AT_BACKDROP)
+        {
+
+        }
+        else if (driveState == DriveState.PARKING)
+        {
+
+        }
+        else if (driveState == DriveState.PARKED)
+        {
+
+        }
+        c4.update();
+    }
+
+    public void triggerActionsRedAudience()
+    {
+        // Drivetrain FSM
+        if (driveState == DriveState.INITIAL)
+        {
             if (label != -1) {driveState = DriveState.TO_SPIKE_MARK;}
         }
         else if (driveState == DriveState.TO_SPIKE_MARK)
@@ -406,6 +592,18 @@ public class DetonateFR extends LinearOpMode
         {
 
         }
+        else if (driveState == DriveState.TO_STACK_4)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_5)
+        {
+
+        }
+        else if (driveState == DriveState.TO_STACK_6)
+        {
+
+        }
         else if (driveState == DriveState.AT_STACK)
         {
 
@@ -426,11 +624,7 @@ public class DetonateFR extends LinearOpMode
         {
 
         }
-    }
-
-    public void triggerActionsRedAudience()
-    {
-
+        c4.update();
     }
 
     public void triggerActionsBlueBack()

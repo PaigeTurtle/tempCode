@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.TeleOp;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 
@@ -89,9 +91,56 @@ public class BotValues
         return Math.cos(distance * ((2 * Math.PI) / (4 * BACKDROP_SAFETY_DISTANCE)));
     }
 
+    /////////////////////////////// Robot Positions /////////////////////////////////////
+
+    // Starting Position
+    public static final Pose2d startPose = new Pose2d(66, -36, Math.toRadians(0));
+
+    // Spike Marks
+    public static final Vector2d leftSpikeRA = new Vector2d(30, -47);
+    public static final Vector2d centerSpikeRA = new Vector2d(25, -36);
+    public static final Vector2d rightSpikeRA = new Vector2d(30, -25);
+
+    public static final Vector2d leftSpikeRB = new Vector2d(30, 1);
+    public static final Vector2d centerSpikeRB = new Vector2d(25, 12);
+    public static final Vector2d rightSpikeRB = new Vector2d(30, 23);
+
+    public static final Vector2d leftSpikeBA = new Vector2d(-30, -25);
+    public static final Vector2d centerSpikeBA = new Vector2d(-25, -30);
+    public static final Vector2d rightSpikeBA = new Vector2d(-30, -47);
+
+    public static final Vector2d leftSpikeBB = new Vector2d(-30, 23);
+    public static final Vector2d centerSpikeBB = new Vector2d(-25, 12);
+    public static final Vector2d rightSpikeBB = new Vector2d(-30, 1);
+
+    // Stacks
+    public static final Vector2d stack1 = new Vector2d(-36, -71);
+    public static final Vector2d stack2 = new Vector2d(-24, -71);
+    public static final Vector2d stack3 = new Vector2d(-12, -71);
+    public static final Vector2d stack4 = new Vector2d(12, -71);
+    public static final Vector2d stack5 = new Vector2d(24, -71);
+    public static final Vector2d stack6 = new Vector2d(36, -71);
+
+    // April Tag Detection Spots
+    public static final Vector2d aprilTagDetectionSpotRed = new Vector2d(18, 36);
+    public static final Vector2d aprilTagDetectionSpotBlue = new Vector2d(-18, 36);
+
+    // Backdrop Spots for Scoring
+    public static final Vector2d backdropRedLeft = new Vector2d(30, 52);
+    public static final Vector2d backdropRedCenter = new Vector2d(36, 52);
+    public static final Vector2d backdropRedRight = new Vector2d(42, 52);
+    public static final Vector2d backdropBlueLeft = new Vector2d(-42, 52);
+    public static final Vector2d backdropBlueCenter = new Vector2d(-36, 52);
+    public static final Vector2d backdropBlueRight = new Vector2d(-30, 52);
+
+    // Parking
+    public static final Vector2d redParking1 = new Vector2d(12, 60);
+    public static final Vector2d redParking2 = new Vector2d(60, 60);
+    public static final Vector2d blueParking1 = new Vector2d(-12, 60);
+    public static final Vector2d blueParking2 = new Vector2d(-60, 60);
 
 
-    // Road Runner
+    ///////////////////////////////// Road Runner Info ///////////////////////////////
     public final static double MAX_DRIVE_RPM = 312;
     public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(0, 0, 0, getMotorVelocityF(MAX_DRIVE_RPM / 60 * TICKS_PER_REV_312));
     public final static boolean RUN_USING_ENCODER = false;

@@ -371,10 +371,10 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         rightHanger.setZeroPowerBehavior((DcMotorEx.ZeroPowerBehavior.BRAKE));
 
         // May need to change this depending on how robot behaves
-        frontleft.setDirection(DcMotorEx.Direction.REVERSE);
+        frontleft.setDirection(DcMotorEx.Direction.FORWARD);
         backleft.setDirection(DcMotorEx.Direction.FORWARD);
-        backright.setDirection(DcMotorEx.Direction.FORWARD);
-        frontright.setDirection(DcMotorEx.Direction.FORWARD);
+        backright.setDirection(DcMotorEx.Direction.REVERSE);
+        frontright.setDirection(DcMotorEx.Direction.REVERSE);
         leftSlides.setDirection(DcMotorEx.Direction.FORWARD);
         rightSlides.setDirection(DcMotorEx.Direction.REVERSE);
         leftHanger.setDirection(DcMotorEx.Direction.FORWARD);
