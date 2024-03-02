@@ -108,7 +108,8 @@ public class DetonateFR extends LinearOpMode
             telemetry.addData("Recognition", label);
             telemetry.update();
         }
-        desiredAprilTagID = label;
+        if (autoState == AutoState.BLUE_AUDIENCE || autoState == AutoState.BLUE_BACKDROP) {desiredAprilTagID = label + 1;}
+        else {desiredAprilTagID = label + 4;}
         finalizeDriveSequence(autoState, label);
 
         // Clear up memory
@@ -463,19 +464,19 @@ public class DetonateFR extends LinearOpMode
         // Drivetrain FSM
         if (driveState == DriveState.INITIAL)
         {
-            if (label == BotValues.LEFT)
+            if (label == BotValues.PROP_LEFT)
             {
                 driveState = DriveState.TO_SPIKE_MARK;
                 lastTrajectory = toLeftSpikeMarkRB;
                 c4.followTrajectoryAsync(toLeftSpikeMarkRB);
             }
-            else if (label == BotValues.CENTER)
+            else if (label == BotValues.PROP_CENTER)
             {
                 driveState = DriveState.TO_SPIKE_MARK;
                 lastTrajectory = toCenterSpikeMarkRB;
                 c4.followTrajectory(toCenterSpikeMarkRB);
             }
-            else if (label == BotValues.RIGHT)
+            else if (label == BotValues.PROP_RIGHT)
             {
                 driveState = DriveState.TO_SPIKE_MARK;
                 lastTrajectory = toRightSpikeMarkRB;
@@ -509,7 +510,38 @@ public class DetonateFR extends LinearOpMode
         }
         else if (driveState == DriveState.LOOKING_FOR_APRIL_TAG)
         {
+            c4.strafeRight();
+            currentDetections = aprilTagProcessor.getDetections();
+            //sleep(250);
+            while (currentDetections == null || currentDetections.size() == 0)
+            {
+                currentDetections = aprilTagProcessor.getFreshDetections();
+                //sleep(250);
+            }
+            telemetry.addData("# AprilTags Detected", currentDetections.size());
+            telemetry.update();
 
+            for (AprilTagDetection detection : currentDetections)
+            {
+                if (targetFound) {break;}
+                else if (detection.metadata != null && detection.id == desiredAprilTagID)
+                {
+                    targetFound = true;
+                    telemetry.addLine("ID: " + detection.id + ", " + detection.metadata.name);
+                    desiredAprilTag = detection;
+                }
+                else
+                {
+                    telemetry.addData("Unknown Label", detection.id);
+                    telemetry.update();
+                }
+            }
+            telemetry.update();
+            if (targetFound)
+            {
+                c4.power(0);
+                driveState = DriveState.PREPARE_YELLOW_OUTTAKE;
+            }
         }
         else if (driveState == DriveState.PREPARE_YELLOW_OUTTAKE)
         {

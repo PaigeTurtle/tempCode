@@ -327,6 +327,9 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         backright.setPower(bR);
     }
 
+    public void strafeRight() {power(BotValues.slowPow, -1 * BotValues.slowPow, -1 * BotValues.slowPow, BotValues.slowPow);}
+    public void strafeLeft() {power(-1 * BotValues.slowPow, BotValues.slowPow, BotValues.slowPow, -1 * BotValues.slowPow);}
+
     public void initMotors(HardwareMap hardwareMap)
     {
         // Initialize Motors
@@ -421,5 +424,40 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         timer = new ElapsedTime();
         distanceSensor = hardwareMap.get(DistanceSensor.class, "distance sensor");
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
+    }
+
+    public void openLeftClaw() {leftClaw.setPosition(BotValues.LEFT_CLAW_RANGE);}
+    public void closeLeftClaw() {leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);}
+    public void openRightClaw() {leftClaw.setPosition(BotValues.RIGHT_CLAW_RANGE);}
+    public void closeRightClaw() {leftClaw.setPosition(BotValues.RIGHT_CLAW_HOME);}
+    public void wristToIntake()
+    {
+        leftWrist.setPosition(BotValues.LEFT_WRIST_INTAKE);
+        rightWrist.setPosition(BotValues.RIGHT_WRIST_INTAKE);
+    }
+    public void wristFold()
+    {
+        leftWrist.setPosition(BotValues.LEFT_WRIST_HOME);
+        rightWrist.setPosition(BotValues.RIGHT_WRIST_HOME);
+    }
+    public void wristToDownOuttake()
+    {
+        leftWrist.setPosition(BotValues.LEFT_WRIST_OUTTAKE_DOWN);
+        rightWrist.setPosition(BotValues.RIGHT_WRIST_OUTTAKE_DOWN);
+    }
+    public void wristToUpOuttake()
+    {
+        leftWrist.setPosition(BotValues.LEFT_WRIST_OUTTAKE_UP);
+        rightWrist.setPosition(BotValues.RIGHT_WRIST_OUTTAKE_UP);
+    }
+    public void armToIntake()
+    {
+        leftArm.setPosition(BotValues.LEFT_ARM_HOME);
+        rightArm.setPosition(BotValues.RIGHT_ARM_HOME);
+    }
+    public void armToOuttake()
+    {
+        leftArm.setPosition(BotValues.LEFT_ARM_OUTTAKE);
+        rightArm.setPosition(BotValues.RIGHT_ARM_OUTTAKE);
     }
 }

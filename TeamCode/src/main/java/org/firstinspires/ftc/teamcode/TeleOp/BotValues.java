@@ -11,29 +11,29 @@ public class BotValues
 {
     // Arm
     public final static double LEFT_ARM_HOME = 0.1;
-    public final static double LEFT_ARM_OUTTAKE = 0.9;
-    public final static double RIGHT_ARM_HOME = 0.9;
-    public final static double RIGHT_ARM_OUTTAKE = 0.1;
+    public final static double LEFT_ARM_OUTTAKE = 0.8;
+    public final static double RIGHT_ARM_HOME = 0.7;
+    public final static double RIGHT_ARM_OUTTAKE = 0;
 
     // Wrist
     public final static double LEFT_WRIST_HOME = 0.1;
-    public final static double LEFT_WRIST_OUTTAKE_DOWN = 0.2;
-    public final static double LEFT_WRIST_INTAKE = 0.5;
-    public final static double LEFT_WRIST_OUTTAKE_UP = 0.9;
-    public final static double RIGHT_WRIST_HOME = 0.1;
-    public final static double RIGHT_WRIST_OUTTAKE_DOWN = 0.2;
-    public final static double RIGHT_WRIST_INTAKE = 0.5;
-    public final static double RIGHT_WRIST_OUTTAKE_UP = 0.9;
+    public final static double LEFT_WRIST_OUTTAKE_DOWN = 0.1;
+    public final static double LEFT_WRIST_INTAKE = 0.35;
+    public final static double LEFT_WRIST_OUTTAKE_UP = 0.65;
+    public final static double RIGHT_WRIST_HOME = 0.9;
+    public final static double RIGHT_WRIST_OUTTAKE_DOWN = 0.85;
+    public final static double RIGHT_WRIST_INTAKE = 0.35;
+    public final static double RIGHT_WRIST_OUTTAKE_UP = 0.35;
 
     // Claw
-    public final static double LEFT_CLAW_HOME = 0.1;
-    public final static double LEFT_CLAW_RANGE = 0.9;
-    public final static double RIGHT_CLAW_HOME = 0.9;
-    public final static double RIGHT_CLAW_RANGE = 0.1;
+    public final static double LEFT_CLAW_HOME = 0.9;
+    public final static double LEFT_CLAW_RANGE = 0.5;
+    public final static double RIGHT_CLAW_HOME = 0.1;
+    public final static double RIGHT_CLAW_RANGE = 0.5;
 
     // Plane Launcher
     public final static double PLANE_LAUNCHER_HOME = 0.1;
-    public final static double PLANE_LAUNCHER_RANGE = 0.9;
+    public final static double PLANE_LAUNCHER_RANGE = 0.4;
 
     // Slides
     public final static double SLIDE_HUB_DIAMETER = 1.5; // in inches
@@ -48,7 +48,8 @@ public class BotValues
     // Drivetrain
     public static double pow = voltageNormalize(0.77);
     public static double slowPow = voltageNormalize(0.2);
-    public final static double driveStickDeadZone = 0.05;
+    public final static double driveStickDeadZoneLow = 0.05;
+    public final static double driveStickDeadZoneHigh = 0.9;
     public final static double turningDeadZone = 0.05;
     public final static double QUICK_TURN_ANGLE = Math.toRadians(45);
 
@@ -79,9 +80,16 @@ public class BotValues
     public final static String RA_MODEL_NAME = "redFront.tflite";
     public final static String BB_MODEL_NAME = "blueBack.tflite";
     public final static String BA_MODEL_NAME = "blueFront.tflite";
-    public final static int LEFT = 0;
-    public final static int CENTER = 1;
-    public final static int RIGHT = 2;
+    public final static int PROP_LEFT = 0;
+    public final static int PROP_CENTER = 1;
+    public final static int PROP_RIGHT = 2;
+    public final static int BLUE_LEFT_APRIL_TAG = 1;
+    public final static int BLUE_CENTER_APRIL_TAG = 2;
+    public final static int BLUE_RIGHT_APRIL_TAG = 3;
+    public final static int RED_LEFT_APRIL_TAG = 4;
+    public final static int RED_CENTER_APRIL_TAG = 5;
+    public final static int RED_RIGHT_APRIL_TAG = 6;
+    public final static double CAMERA_DISTANCE_TO_CLAW = 3.0; // inches from camera to center of outtaking claw
 
     // Pixels
 

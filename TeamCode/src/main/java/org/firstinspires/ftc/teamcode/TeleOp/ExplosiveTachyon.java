@@ -259,7 +259,7 @@ public class ExplosiveTachyon extends LinearOpMode
         slidesUpLow = gamepad2.dpad_down;
         slidesUpManual = gamepad2.left_stick_y < -0.25;
         slidesDownManual = gamepad2.left_stick_y > 0.25;
-        slideStop = gamepad2.left_stick_button;
+        slideStop = gamepad2.right_stick_button;
         slidesTouchingSensor = touchSensor.isPressed();
         openLeftClaw = gamepad2.left_trigger > 0.25;
         closeLeftClaw = gamepad2.left_bumper;
@@ -302,8 +302,8 @@ public class ExplosiveTachyon extends LinearOpMode
         else if (right) {power(BotValues.pow, -1 * BotValues.pow, -1 * BotValues.pow, BotValues.pow);}
 
         // Turning
-        else if (counterClockwise) {power(-1 * BotValues.pow, BotValues.pow, -1 * BotValues.pow, BotValues.pow);}
-        else if (clockwise) {power(BotValues.pow, -1 * BotValues.pow, BotValues.pow, -1 * BotValues.pow);}
+        else if (clockwise) {power(-1 * BotValues.pow, BotValues.pow, -1 * BotValues.pow, BotValues.pow);}
+        else if (counterClockwise) {power(BotValues.pow, -1 * BotValues.pow, BotValues.pow, -1 * BotValues.pow);}
 
         // Stationary when not controlled
         else {power(0);}
@@ -347,9 +347,9 @@ public class ExplosiveTachyon extends LinearOpMode
                 {theta = ((int)((BotValues.angleRoundingPlace * theta) + 1)) / BotValues.angleRoundingPlace;}
             else {theta = ((int)(BotValues.angleRoundingPlace * theta)) / BotValues.angleRoundingPlace;}
 
-            if (Math.abs(y) < BotValues.driveStickDeadZone) {forward = 0;}
+            if (Math.abs(y) < BotValues.driveStickDeadZoneLow || Math.abs(y) > BotValues.driveStickDeadZoneHigh) {forward = 0;}
             else {forward = (x * Math.sin(theta)) + (y * Math.cos(theta));}
-            if (Math.abs(x) < BotValues.driveStickDeadZone) {strafe = 0;}
+            if (Math.abs(x) < BotValues.driveStickDeadZoneLow || Math.abs(x) > BotValues.driveStickDeadZoneHigh) {strafe = 0;}
             else {strafe = (x * Math.cos(theta)) - (y * Math.sin(theta));}
 
             double fLPower = BotValues.voltageNormalize(forward + strafe);
@@ -371,6 +371,8 @@ public class ExplosiveTachyon extends LinearOpMode
             slidePowered = false;
             previousSlideState = slideState;
             slideState = SlideState.STATIONARY;
+            telemetry.addData("Slides", "Stopped");
+            telemetry.update();
         }
         else if (slideState == SlideState.STATIONARY)
         {
