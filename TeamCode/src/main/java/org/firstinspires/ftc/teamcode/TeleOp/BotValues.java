@@ -50,7 +50,7 @@ public class BotValues
     public static double slowPow = voltageNormalize(0.2);
     public final static double driveStickDeadZone = 0.05;
     public final static double turningDeadZone = 0.05;
-    public final static double QUICK_TURN_ANGLE = 45;
+    public final static double QUICK_TURN_ANGLE = Math.toRadians(45);
 
     // Hanging
     public static double hangPow = voltageNormalize(1);
@@ -60,6 +60,13 @@ public class BotValues
 
     // IMU
     public final static double angleRoundingPlace = 100.0; // 100.0 for rounding to hundredths place
+    public static double normalizeAngle(double radians)
+    {
+        double angle = radians;
+        if (radians > Math.PI) {angle -= (2 * Math.PI);}
+        else if (radians <= (-1 * Math.PI)) {angle += (2 * Math.PI);}
+        return angle;
+    }
 
     // Distance Sensor
     public final static double BACKDROP_SAFETY_DISTANCE = 12.0; // in inches

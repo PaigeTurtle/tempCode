@@ -340,8 +340,7 @@ public class ExplosiveTachyon extends LinearOpMode
             double y = -1 * gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
             double theta = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS) - startingAngle;
-            if (theta > 180) {theta -= 360;}
-            else if (theta <= -180) {theta += 360;}
+            theta = BotValues.normalizeAngle(theta);
             double forward, strafe;
 
             if ((BotValues.angleRoundingPlace * theta) - (int)(BotValues.angleRoundingPlace * theta) >= 0.5)
