@@ -68,10 +68,16 @@ public class BotValues
     public final static Float INFERENCE_CONFIDENCE_THRESHOLD = 0.5f;
     public final static int RESOLUTION_WIDTH = 1280;
     public final static int RESOLUTION_HEIGHT = 720;
-    public final static String MODEL_NAME = "redBack.tflite";
+    public final static String RB_MODEL_NAME = "redBack.tflite";
+    public final static String RA_MODEL_NAME = "redFront.tflite";
+    public final static String BB_MODEL_NAME = "blueBack.tflite";
+    public final static String BA_MODEL_NAME = "blueFront.tflite";
     public final static int LEFT = 0;
     public final static int CENTER = 1;
     public final static int RIGHT = 2;
+
+    // Pixels
+
 
     // Normalize Power By Voltage
     public static double voltageNormalize(double power) throws NullPointerException

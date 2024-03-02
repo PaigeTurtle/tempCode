@@ -46,15 +46,20 @@ public class ExplosiveTachyon extends LinearOpMode
     private enum SlideState {INITIAL, UP_LOW, LOW, UP_MEDIUM, MEDIUM, UP_HIGH, HIGH, DOWN, UP_MANUAL, DOWN_MANUAL, STATIONARY};
     private SlideState slideState, previousSlideState;
     private enum ArmState {INTAKE, TO_OUTTAKE, OUTTAKE, TO_INTAKE};
-    private ArmState armState;
+    private ArmState armState, previousArmState;
     private enum WristState {FOLD, TO_INTAKE, INTAKE, TO_DOWN_OUTTAKE, DOWN_OUTTAKE, TO_UP_OUTTAKE, UP_OUTTAKE, TO_FOLD};
-    private WristState wristState;
+    private WristState wristState, previousWristState;
+    private enum ClawState {CLOSED, TO_OPEN, OPEN, TO_CLOSED};
+    private ClawState leftClawState, previousLeftClawState, rightClawState, previousRightClawState;
+
+    // Flags
+    private boolean slidePowered;
 
 
     // Controls
     private boolean forward, backward, left, right, slowForward, slowBackward, slowLeft, slowRight;
     private boolean counterClockwise, clockwise;
-    private boolean stopDrive, closeToBackdrop, slidesTouchingSensor;
+    private boolean stopDrive, slidesTouchingSensor;
     private boolean hangUp, hangDown;
     private boolean launchAirplane;
     private boolean intakePOV, outtakePOV;
@@ -182,6 +187,16 @@ public class ExplosiveTachyon extends LinearOpMode
     public void initStates()
     {
         slideState = SlideState.INITIAL;
+        previousSlideState = slideState;
+        slidePowered = false;
+        armState = ArmState.INTAKE;
+        previousArmState = armState;
+        wristState = WristState.FOLD;
+        previousWristState = wristState;
+        leftClawState = ClawState.CLOSED;
+        previousLeftClawState = leftClawState;
+        rightClawState = ClawState.CLOSED;
+        previousRightClawState = rightClawState;
     }
 
     public void power(double pow)
@@ -231,7 +246,6 @@ public class ExplosiveTachyon extends LinearOpMode
         counterClockwise = gamepad1.left_trigger > BotValues.turningDeadZone;
         clockwise = gamepad1.right_trigger > BotValues.turningDeadZone;
         stopDrive = gamepad1.b;
-        closeToBackdrop = distanceSensor.getDistance(DistanceUnit.INCH) > BotValues.BACKDROP_SAFETY_DISTANCE;
         launchAirplane = gamepad1.x;
         hangUp = gamepad1.right_stick_y < -0.25;
         hangDown = gamepad1.right_stick_y > 0.25;
@@ -300,13 +314,6 @@ public class ExplosiveTachyon extends LinearOpMode
         // Manual Acceleration/Deceleration using joystick and triggers
 
         if (stopDrive) {power(0);}
-        /*else if (closeToBackdrop)
-        {
-            if (forward) {power(BotValues.slowPow);}
-            else if (backward) {power(-1 * BotValues.slowPow);}
-            else if (left) {power(-1 * BotValues.slowPow, BotValues.slowPow, BotValues.slowPow, -1 * BotValues.slowPow);}
-            else if (right) {power(BotValues.slowPow, -1 * BotValues.slowPow, -1 * BotValues.slowPow, BotValues.slowPow);}
-        }*/
         else if (slowForward) {power(BotValues.slowPow);}
         else if (slowBackward) {power(-1 * BotValues.slowPow);}
         else if (slowLeft) {power(-1 * BotValues.slowPow, BotValues.slowPow, BotValues.slowPow, -1 * BotValues.slowPow);}
@@ -362,40 +369,62 @@ public class ExplosiveTachyon extends LinearOpMode
         {
             leftSlides.setPower(0);
             rightSlides.setPower(0);
+            slidePowered = false;
+            previousSlideState = slideState;
             slideState = SlideState.STATIONARY;
         }
         else if (slideState == SlideState.STATIONARY)
         {
-            leftSlides.setPower(0);
-            rightSlides.setPower(0);
-            rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-            if (slidesDown) {slideState = SlideState.DOWN;}
-            else if (slidesUpManual) {slideState = SlideState.UP_MANUAL;}
-            else if (slidesDownManual) {slideState = SlideState.DOWN_MANUAL;}
+            if (slidePowered)
+            {
+                leftSlides.setPower(0);
+                rightSlides.setPower(0);
+                rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                slidePowered = false;
+            }
+            if (slidesDown)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.DOWN;
+            }
+            else if (slidesUpManual)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.UP_MANUAL;
+            }
+            else if (slidesDownManual)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.DOWN_MANUAL;
+            }
         }
         else if (slideState == SlideState.INITIAL)
         {
-            leftSlides.setPower(0);
-            rightSlides.setPower(0);
-            rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-            if (slidesUpLow)
+            if (slidePowered)
+            {
+                leftSlides.setPower(0);
+                rightSlides.setPower(0);
+                rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                slidePowered = false;
+            }
+            if (slidesUpLow && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_LOW;
             }
-            else if (slidesUpMid)
+            else if (slidesUpMid && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MEDIUM;
             }
-            else if (slidesUpHigh)
+            else if (slidesUpHigh && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_HIGH;
             }
-            else if (slidesUpManual)
+            else if (slidesUpManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MANUAL;
@@ -405,6 +434,7 @@ public class ExplosiveTachyon extends LinearOpMode
         {
             if (!(rightSlides.isBusy()) && (rightSlides.getCurrentPosition()) != 0)
             {
+                previousSlideState = slideState;
                 slideState = SlideState.LOW;
             }
             else if (!(rightSlides.isBusy()))
@@ -424,20 +454,26 @@ public class ExplosiveTachyon extends LinearOpMode
                 {
                     leftSlides.setPower(BotValues.slideUpAutoPow);
                     rightSlides.setPower(BotValues.slideUpAutoPow);
+                    slidePowered = true;
                 }
                 else
                 {
                     leftSlides.setPower(BotValues.slideDownAutoPow);
                     rightSlides.setPower(BotValues.slideDownAutoPow);
+                    slidePowered = true;
                 }
             }
         }
         else if (slideState == SlideState.LOW)
         {
-            leftSlides.setPower(0);
-            rightSlides.setPower(0);
-            rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            if (slidePowered)
+            {
+                leftSlides.setPower(0);
+                rightSlides.setPower(0);
+                rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                slidePowered = false;
+            }
             if (slidesDown)
             {
                 previousSlideState = slideState;
@@ -468,6 +504,7 @@ public class ExplosiveTachyon extends LinearOpMode
         {
             if (!(rightSlides.isBusy()) && (rightSlides.getCurrentPosition()) != 0)
             {
+                previousSlideState = slideState;
                 slideState = SlideState.MEDIUM;
             }
             else if (!(rightSlides.isBusy()))
@@ -487,20 +524,26 @@ public class ExplosiveTachyon extends LinearOpMode
                 {
                     leftSlides.setPower(BotValues.slideUpAutoPow);
                     rightSlides.setPower(BotValues.slideUpAutoPow);
+                    slidePowered = true;
                 }
                 else
                 {
                     leftSlides.setPower(BotValues.slideDownAutoPow);
                     rightSlides.setPower(BotValues.slideDownAutoPow);
+                    slidePowered = true;
                 }
             }
         }
         else if (slideState == SlideState.MEDIUM)
         {
-            leftSlides.setPower(0);
-            rightSlides.setPower(0);
-            rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            if (slidePowered)
+            {
+                leftSlides.setPower(0);
+                rightSlides.setPower(0);
+                rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                slidePowered = false;
+            }
             if (slidesDown)
             {
                 previousSlideState = slideState;
@@ -531,6 +574,7 @@ public class ExplosiveTachyon extends LinearOpMode
         {
             if (!(rightSlides.isBusy()) && (rightSlides.getCurrentPosition()) != 0)
             {
+                previousSlideState = slideState;
                 slideState = SlideState.HIGH;
             }
             else if (!(rightSlides.isBusy()))
@@ -550,20 +594,26 @@ public class ExplosiveTachyon extends LinearOpMode
                 {
                     leftSlides.setPower(BotValues.slideUpAutoPow);
                     rightSlides.setPower(BotValues.slideUpAutoPow);
+                    slidePowered = true;
                 }
                 else
                 {
                     leftSlides.setPower(BotValues.slideDownAutoPow);
                     rightSlides.setPower(BotValues.slideDownAutoPow);
+                    slidePowered = true;
                 }
             }
         }
         else if (slideState == SlideState.HIGH)
         {
-            leftSlides.setPower(0);
-            rightSlides.setPower(0);
-            rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+            if (slidePowered)
+            {
+                leftSlides.setPower(0);
+                rightSlides.setPower(0);
+                rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                slidePowered = false;
+            }
             if (slidesDown)
             {
                 previousSlideState = slideState;
@@ -592,76 +642,273 @@ public class ExplosiveTachyon extends LinearOpMode
         }
         else if (slideState == SlideState.DOWN)
         {
-            if (slidesTouchingSensor) {slideState = SlideState.INITIAL;}
+            if (slidesTouchingSensor)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.INITIAL;
+            }
             else
             {
-                leftSlides.setPower(BotValues.slideDownAutoPow);
-                rightSlides.setPower(BotValues.slideDownAutoPow);
+                if (!(slidePowered))
+                {
+                    leftSlides.setPower(BotValues.slideDownAutoPow);
+                    rightSlides.setPower(BotValues.slideDownAutoPow);
+                    slidePowered = true;
+                }
             }
         }
         else if (slideState == SlideState.UP_MANUAL)
         {
-            if (!(slidesUpManual)) {slideState = SlideState.STATIONARY;}
-            else if (slidesDown) {slideState = SlideState.DOWN;}
-            else if (slidesDownManual) {slideState = SlideState.DOWN_MANUAL;}
+            if (slidesDown)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.DOWN;
+            }
+            else if (slidesDownManual)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.DOWN_MANUAL;
+            }
+            else if (slidesUpManual)
+            {
+                if (!(slidePowered))
+                {
+                    leftSlides.setPower(BotValues.slideUpManualPow);
+                    rightSlides.setPower(BotValues.slideUpManualPow);
+                    slidePowered = true;
+                }
+            }
             else
             {
-                leftSlides.setPower(BotValues.slideUpManualPow);
-                rightSlides.setPower(BotValues.slideUpManualPow);
+                previousSlideState = slideState;
+                slideState = SlideState.STATIONARY;
             }
         }
         else if (slideState == SlideState.DOWN_MANUAL)
         {
-            if (!(slidesDownManual)) {slideState = SlideState.STATIONARY;}
-            else if (slidesDown) {slideState = SlideState.DOWN;}
-            else if (slidesUpManual) {slideState = SlideState.UP_MANUAL;}
+            if (slidesDown)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.DOWN;
+            }
+            else if (slidesUpManual)
+            {
+                previousSlideState = slideState;
+                slideState = SlideState.UP_MANUAL;
+            }
+            else if (slidesDownManual)
+            {
+                if (!(slidePowered))
+                {
+                    leftSlides.setPower(BotValues.slideDownManualPow);
+                    rightSlides.setPower(BotValues.slideDownManualPow);
+                    slidePowered = true;
+                }
+            }
             else
             {
-                leftSlides.setPower(BotValues.slideDownManualPow);
-                rightSlides.setPower(BotValues.slideDownManualPow);
+                previousSlideState = slideState;
+                slideState = SlideState.STATIONARY;
             }
         }
 
+
         // Arm
-        if (armToIntake)
+        if (armState == ArmState.INTAKE)
         {
-            leftArm.setPosition(BotValues.LEFT_ARM_HOME);
-            rightArm.setPosition(BotValues.RIGHT_ARM_HOME);
+            if (armToOuttake && (wristState != WristState.FOLD))
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_OUTTAKE;
+            }
         }
-        else if (armToOuttake)
+        else if (armState == ArmState.TO_OUTTAKE)
         {
             leftArm.setPosition(BotValues.LEFT_ARM_OUTTAKE);
             rightArm.setPosition(BotValues.RIGHT_ARM_OUTTAKE);
+            previousArmState = armState;
+            armState = ArmState.OUTTAKE;
+        }
+        else if (armState == ArmState.OUTTAKE)
+        {
+            if (armToIntake && (wristState != WristState.UP_OUTTAKE))
+            {
+                previousArmState = armState;
+                armState = ArmState.TO_INTAKE;
+            }
+        }
+        else if (armState == ArmState.TO_INTAKE)
+        {
+            leftArm.setPosition(BotValues.LEFT_ARM_HOME);
+            rightArm.setPosition(BotValues.RIGHT_ARM_HOME);
+            previousArmState = armState;
+            armState = ArmState.INTAKE;
         }
 
+
         // Wrist
-        if (wristFold)
+        if (wristState == WristState.FOLD)
         {
-            leftWrist.setPosition(BotValues.LEFT_WRIST_HOME);
-            rightWrist.setPosition(BotValues.RIGHT_WRIST_HOME);
+            if (wristToIntake)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_INTAKE;
+            }
+            else if (wristToDownOuttake)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_DOWN_OUTTAKE;
+            }
+            else if (wristToUpOuttake && (armState != ArmState.INTAKE))
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_UP_OUTTAKE;
+            }
         }
-        else if (wristToIntake)
+        else if (wristState == WristState.TO_INTAKE)
         {
             leftWrist.setPosition(BotValues.LEFT_WRIST_INTAKE);
             rightWrist.setPosition(BotValues.RIGHT_WRIST_INTAKE);
+            previousWristState = wristState;
+            wristState = WristState.INTAKE;
         }
-        else if (wristToDownOuttake)
+        else if (wristState == WristState.INTAKE)
+        {
+            if (wristFold)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_FOLD;
+            }
+            else if (wristToDownOuttake)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_DOWN_OUTTAKE;
+            }
+            else if (wristToUpOuttake && (armState != ArmState.INTAKE))
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_UP_OUTTAKE;
+            }
+        }
+        else if (wristState == WristState.TO_DOWN_OUTTAKE)
         {
             leftWrist.setPosition(BotValues.LEFT_WRIST_OUTTAKE_DOWN);
             rightWrist.setPosition(BotValues.RIGHT_WRIST_OUTTAKE_DOWN);
+            previousWristState = wristState;
+            wristState = WristState.DOWN_OUTTAKE;
         }
-        else if (wristToUpOuttake)
+        else if (wristState == WristState.DOWN_OUTTAKE)
+        {
+            if (wristFold)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_FOLD;
+            }
+            else if (wristToIntake)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_INTAKE;
+            }
+            else if (wristToUpOuttake && (armState != ArmState.INTAKE))
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_UP_OUTTAKE;
+            }
+        }
+        else if (wristState == WristState.TO_UP_OUTTAKE)
         {
             leftWrist.setPosition(BotValues.LEFT_WRIST_OUTTAKE_UP);
             rightWrist.setPosition(BotValues.RIGHT_WRIST_OUTTAKE_UP);
+            previousWristState = wristState;
+            wristState = WristState.UP_OUTTAKE;
+        }
+        else if (wristState == WristState.UP_OUTTAKE)
+        {
+            if (wristFold)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_FOLD;
+            }
+            else if (wristToIntake)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_INTAKE;
+            }
+            else if (wristToDownOuttake)
+            {
+                previousWristState = wristState;
+                wristState = WristState.TO_DOWN_OUTTAKE;
+            }
+        }
+        else if (wristState == WristState.TO_FOLD)
+        {
+            leftWrist.setPosition(BotValues.LEFT_WRIST_HOME);
+            rightWrist.setPosition(BotValues.RIGHT_WRIST_HOME);
+            previousWristState = wristState;
+            wristState = WristState.FOLD;
         }
 
 
-        // Claw
-        if (openLeftClaw) {leftClaw.setPosition(BotValues.LEFT_CLAW_RANGE);}
-        else if (closeLeftClaw) {leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);}
-        if (openRightClaw) {rightClaw.setPosition(BotValues.RIGHT_CLAW_RANGE);}
-        else if (closeRightClaw) {rightClaw.setPosition(BotValues.RIGHT_CLAW_HOME);}
+        // Left Claw
+        if (leftClawState == ClawState.CLOSED)
+        {
+            if (openLeftClaw)
+            {
+                previousLeftClawState = leftClawState;
+                leftClawState = ClawState.TO_OPEN;
+            }
+        }
+        else if (leftClawState == ClawState.TO_OPEN)
+        {
+            leftClaw.setPosition(BotValues.LEFT_CLAW_RANGE);
+            previousLeftClawState = leftClawState;
+            leftClawState = ClawState.OPEN;
+        }
+        else if (leftClawState == ClawState.OPEN)
+        {
+            if (closeLeftClaw)
+            {
+                previousLeftClawState = leftClawState;
+                leftClawState = ClawState.TO_CLOSED;
+            }
+        }
+        else if (leftClawState == ClawState.TO_CLOSED)
+        {
+            leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);
+            previousLeftClawState = leftClawState;
+            leftClawState = ClawState.CLOSED;
+        }
+
+
+        // Right Claw
+        if (rightClawState == ClawState.CLOSED)
+        {
+            if (openRightClaw)
+            {
+                previousRightClawState = rightClawState;
+                rightClawState = ClawState.TO_OPEN;
+            }
+        }
+        else if (rightClawState == ClawState.TO_OPEN)
+        {
+            rightClaw.setPosition(BotValues.RIGHT_CLAW_RANGE);
+            previousRightClawState = rightClawState;
+            rightClawState = ClawState.OPEN;
+        }
+        else if (rightClawState == ClawState.OPEN)
+        {
+            if (closeRightClaw)
+            {
+                previousRightClawState = rightClawState;
+                rightClawState = ClawState.TO_CLOSED;
+            }
+        }
+        else if (rightClawState == ClawState.TO_CLOSED)
+        {
+            rightClaw.setPosition(BotValues.RIGHT_CLAW_HOME);
+            previousRightClawState = rightClawState;
+            rightClawState = ClawState.CLOSED;
+        }
 
 
         // Plane Launcher

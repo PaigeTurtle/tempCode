@@ -31,6 +31,7 @@ public class DetonateFR extends LinearOpMode
     private VisionPortal portal;
     private CameraName camera;
     private ImageRecognition classifier;
+    private String modelName;
     private AprilTagProcessor aprilTagProcessor;
     private boolean targetFound;
     private AprilTagDetection desiredAprilTag;
@@ -92,10 +93,10 @@ public class DetonateFR extends LinearOpMode
     {
         // Initialization
         c4 = new ExplosiveTachyonicParticle(hardwareMap);
+        finalizeAutoState();
         initCV();
         initStates();
         initDriveSequences();
-        finalizeAutoState();
 
         telemetry.addData("C4", "Ready");
         telemetry.update();
@@ -150,7 +151,11 @@ public class DetonateFR extends LinearOpMode
         aprilTagProcessor.setDecimation(2);
         portal = (new VisionPortal.Builder().setCamera(camera).setCameraResolution(new Size(BotValues.RESOLUTION_WIDTH, BotValues.RESOLUTION_HEIGHT)).addProcessor(aprilTagProcessor)).build();
         portal.stopLiveView();
-        classifier = new ImageRecognition(BotValues.INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, BotValues.MODEL_NAME);
+        if (autoState == AutoState.RED_AUDIENCE) {modelName = BotValues.RA_MODEL_NAME;}
+        else if (autoState == AutoState.BLUE_BACKDROP) {modelName = BotValues.BB_MODEL_NAME;}
+        else if (autoState == AutoState.BLUE_AUDIENCE) {modelName = BotValues.BA_MODEL_NAME;}
+        else {modelName = BotValues.RB_MODEL_NAME;}
+        classifier = new ImageRecognition(BotValues.INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, modelName);
         frameNum = 0;
         label = -1;
         desiredAprilTagID = -1;

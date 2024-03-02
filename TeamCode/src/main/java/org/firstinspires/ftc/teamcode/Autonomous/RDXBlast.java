@@ -165,7 +165,7 @@ public class RDXBlast extends LinearOpMode
         aprilTagProcessor.setDecimation(2);
         portal = (new VisionPortal.Builder().setCamera(camera).setCameraResolution(new Size(BotValues.RESOLUTION_WIDTH, BotValues.RESOLUTION_HEIGHT)).addProcessor(aprilTagProcessor)).build();
         portal.stopLiveView();
-        classifier = new ImageRecognition(BotValues.INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, BotValues.MODEL_NAME);
+        classifier = new ImageRecognition(BotValues.INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, BotValues.RB_MODEL_NAME);
         frameNum = 0;
         label = -1;
         desiredTagID = -1;

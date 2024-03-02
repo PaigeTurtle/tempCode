@@ -114,26 +114,8 @@ public class ImageRecognition
             case DELEGATE_NNAPI:
                 baseOptionsBuilder.useNnapi();
         }*/
-
-        String modelName = "model.tflite";
-        /*switch (currentModel) {
-            case MODEL_MOBILENETV1:
-                modelName = "model.tflite";
-                break;
-            case MODEL_EFFICIENTNETV0:
-                modelName = "model.tflite";
-                break;
-            case MODEL_EFFICIENTNETV1:
-                modelName = "model.tflite";
-                break;
-            case MODEL_EFFICIENTNETV2:
-                modelName = "model.tflite";
-                break;
-            default:
-                modelName = "model.tflite";
-        }*/
         try {
-            imageClassifier = ImageClassifier.createFromFileAndOptions(new File("/sdcard/FIRST/tflitemodels/redBack.tflite"), optionsBuilder.build());
+            imageClassifier = ImageClassifier.createFromFileAndOptions(new File(/*"/sdcard/FIRST/tflitemodels/redBack.tflite"*/ this.modelPath), optionsBuilder.build());
         } catch (IOException e) {
             Log.e(TAG, "TFLite failed to load model with error: " + e.getMessage());
         }
