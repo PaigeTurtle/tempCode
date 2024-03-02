@@ -40,21 +40,21 @@ public class BotValues
     public final static double HIGH_SET_LINE = 20.1; // in inches
     public final static double MEDIUM_SET_LINE = 16; // in inches
     public final static double LOW_SET_LINE = 12.375; // in inches
-    public static double slideUpAutoPow = voltageNormalize(0.8);
-    public static double slideDownAutoPow = voltageNormalize(-0.5);
-    public static double slideUpManualPow = voltageNormalize(0.4);
-    public static double slideDownManualPow = voltageNormalize(-0.3);
+    public static double slideUpAutoPow = /*voltageNormalize(0.8)*/ 0.8;
+    public static double slideDownAutoPow = /*voltageNormalize(-0.5)*/ -0.5;
+    public static double slideUpManualPow = /*voltageNormalize(0.4)*/ 0.4;
+    public static double slideDownManualPow = /*voltageNormalize(-0.3)*/ -0.3;
 
     // Drivetrain
-    public static double pow = voltageNormalize(0.77);
-    public static double slowPow = voltageNormalize(0.2);
+    public static double pow = /*voltageNormalize(0.77)*/ 0.77;
+    public static double slowPow = /*voltageNormalize(0.2)*/ 0.2;
     public final static double driveStickDeadZoneLow = 0.05;
     public final static double driveStickDeadZoneHigh = 0.9;
     public final static double turningDeadZone = 0.05;
     public final static double QUICK_TURN_ANGLE = Math.toRadians(45);
 
     // Hanging
-    public static double hangPow = voltageNormalize(1);
+    public static double hangPow = /*voltageNormalize(1)*/ 1;
 
     // DC Motor Encoder Resolutions
     public final static double TICKS_PER_REV_312 = 537.7;

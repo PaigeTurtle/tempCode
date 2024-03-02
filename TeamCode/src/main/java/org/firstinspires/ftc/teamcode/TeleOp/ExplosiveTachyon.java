@@ -81,7 +81,7 @@ public class ExplosiveTachyon extends LinearOpMode
         while (opModeIsActive() && !(isStopRequested()))
         {
             updateControls();
-            analogDrive();
+            digitalDrive();
             triggerActions();
         }
     }
@@ -384,17 +384,17 @@ public class ExplosiveTachyon extends LinearOpMode
                 rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 slidePowered = false;
             }
-            if (slidesDown)
+            if (slidesDown && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN;
             }
-            else if (slidesUpManual)
+            else if (slidesUpManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MANUAL;
             }
-            else if (slidesDownManual)
+            else if (slidesDownManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN_MANUAL;
@@ -475,27 +475,27 @@ public class ExplosiveTachyon extends LinearOpMode
                 rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 slidePowered = false;
             }
-            if (slidesDown)
+            if (slidesDown && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN;
             }
-            else if (slidesUpMid)
+            else if (slidesUpMid && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MEDIUM;
             }
-            else if (slidesUpHigh)
+            else if (slidesUpHigh && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_HIGH;
             }
-            else if (slidesUpManual)
+            else if (slidesUpManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MANUAL;
             }
-            else if (slidesDownManual)
+            else if (slidesDownManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN_MANUAL;
@@ -545,27 +545,27 @@ public class ExplosiveTachyon extends LinearOpMode
                 rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 slidePowered = false;
             }
-            if (slidesDown)
+            if (slidesDown && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN;
             }
-            else if (slidesUpLow)
+            else if (slidesUpLow && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_LOW;
             }
-            else if (slidesUpHigh)
+            else if (slidesUpHigh && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_HIGH;
             }
-            else if (slidesUpManual)
+            else if (slidesUpManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MANUAL;
             }
-            else if (slidesDownManual)
+            else if (slidesDownManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN_MANUAL;
@@ -615,27 +615,27 @@ public class ExplosiveTachyon extends LinearOpMode
                 rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 slidePowered = false;
             }
-            if (slidesDown)
+            if (slidesDown && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN;
             }
-            else if (slidesUpLow)
+            else if (slidesUpLow && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_LOW;
             }
-            else if (slidesUpMid)
+            else if (slidesUpMid && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MEDIUM;
             }
-            else if (slidesUpManual)
+            else if (slidesUpManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MANUAL;
             }
-            else if (slidesDownManual)
+            else if (slidesDownManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN_MANUAL;
@@ -660,17 +660,17 @@ public class ExplosiveTachyon extends LinearOpMode
         }
         else if (slideState == SlideState.UP_MANUAL)
         {
-            if (slidesDown)
+            if (slidesDown && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN;
             }
-            else if (slidesDownManual)
+            else if (slidesDownManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN_MANUAL;
             }
-            else if (slidesUpManual)
+            else if (slidesUpManual && (armState != ArmState.INTAKE))
             {
                 if (!(slidePowered))
                 {
@@ -687,17 +687,17 @@ public class ExplosiveTachyon extends LinearOpMode
         }
         else if (slideState == SlideState.DOWN_MANUAL)
         {
-            if (slidesDown)
+            if (slidesDown && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.DOWN;
             }
-            else if (slidesUpManual)
+            else if (slidesUpManual && (armState != ArmState.INTAKE))
             {
                 previousSlideState = slideState;
                 slideState = SlideState.UP_MANUAL;
             }
-            else if (slidesDownManual)
+            else if (slidesDownManual && (armState != ArmState.INTAKE))
             {
                 if (!(slidePowered))
                 {
@@ -717,7 +717,7 @@ public class ExplosiveTachyon extends LinearOpMode
         // Arm
         if (armState == ArmState.INTAKE)
         {
-            if (armToOuttake && (wristState != WristState.FOLD))
+            if (armToOuttake && (wristState == WristState.INTAKE) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED))
             {
                 previousArmState = armState;
                 armState = ArmState.TO_OUTTAKE;
@@ -732,7 +732,7 @@ public class ExplosiveTachyon extends LinearOpMode
         }
         else if (armState == ArmState.OUTTAKE)
         {
-            if (armToIntake && (wristState != WristState.UP_OUTTAKE))
+            if (armToIntake && (wristState == WristState.INTAKE) && (slideState == SlideState.INITIAL) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED))
             {
                 previousArmState = armState;
                 armState = ArmState.TO_INTAKE;
