@@ -327,9 +327,6 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         backright.setPower(bR);
     }
 
-    public void strafeRight() {power(BotValues.slowPow, -1 * BotValues.slowPow, -1 * BotValues.slowPow, BotValues.slowPow);}
-    public void strafeLeft() {power(-1 * BotValues.slowPow, BotValues.slowPow, BotValues.slowPow, -1 * BotValues.slowPow);}
-
     public void initMotors(HardwareMap hardwareMap)
     {
         // Initialize Motors
@@ -425,6 +422,15 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         distanceSensor = hardwareMap.get(DistanceSensor.class, "distance sensor");
         voltageSensor = hardwareMap.voltageSensor.iterator().next();
     }
+
+    public void forwardSlow() {power(BotValues.autoSlowPow);}
+    public void backwardSlow() {power(-1 * BotValues.autoSlowPow);}
+    public void strafeRightSlow() {power(BotValues.autoSlowPow, -1 * BotValues.autoSlowPow, -1 * BotValues.autoSlowPow, BotValues.autoSlowPow);}
+    public void strafeLeftSlow() {power(-1 * BotValues.autoSlowPow, BotValues.autoSlowPow, BotValues.autoSlowPow, -1 * BotValues.autoSlowPow);}
+    public void forwardFast() {power(BotValues.autoFastPow);}
+    public void backwardFast() {power(-1 * BotValues.autoFastPow);}
+    public void strafeRightFast() {power(BotValues.autoFastPow, -1 * BotValues.autoFastPow, -1 * BotValues.autoFastPow, BotValues.autoFastPow);}
+    public void strafeLeftFast() {power(-1 * BotValues.autoFastPow, BotValues.autoFastPow, BotValues.autoFastPow, -1 * BotValues.autoFastPow);}
 
     public void openLeftClaw() {leftClaw.setPosition(BotValues.LEFT_CLAW_RANGE);}
     public void closeLeftClaw() {leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);}

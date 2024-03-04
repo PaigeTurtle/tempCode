@@ -14,6 +14,8 @@ public class BotValues
     public final static double LEFT_ARM_OUTTAKE = 0.8;
     public final static double RIGHT_ARM_HOME = 0.7;
     public final static double RIGHT_ARM_OUTTAKE = 0;
+    public final static double ARM_TO_OUTTAKE_TIME = 1000; // in milliseconds
+    public final static double ARM_TO_INTAKE_TIME = 1000; // in milliseconds
 
     // Wrist
     public final static double LEFT_WRIST_HOME = 0.1;
@@ -24,34 +26,52 @@ public class BotValues
     public final static double RIGHT_WRIST_OUTTAKE_DOWN = 0.85;
     public final static double RIGHT_WRIST_INTAKE = 0.35;
     public final static double RIGHT_WRIST_OUTTAKE_UP = 0.35;
+    public final static double WRIST_TO_INTAKE_TIME = 200; // in milliseconds
+    public final static double WRIST_TO_FOLD_TIME = 200; // in milliseconds
+    public final static double WRIST_TO_OUTTAKE_DOWN_TIME = 200; // in milliseconds
+    public final static double WRIST_TO_OUTTAKE_UP_TIME = 200; // in milliseconds
 
     // Claw
     public final static double LEFT_CLAW_HOME = 0.9;
     public final static double LEFT_CLAW_RANGE = 0.5;
+    public final static double LEFT_CLAW_OPEN_TIME = 200; // in milliseconds
+    public final static double LEFT_CLAW_CLOSE_TIME = 200; // in milliseconds
     public final static double RIGHT_CLAW_HOME = 0.1;
     public final static double RIGHT_CLAW_RANGE = 0.5;
+    public final static double RIGHT_CLAW_OPEN_TIME = 200; // in milliseconds
+    public final static double RIGHT_CLAW_CLOSE_TIME = 200; // in milliseconds
 
     // Plane Launcher
     public final static double PLANE_LAUNCHER_HOME = 0.1;
     public final static double PLANE_LAUNCHER_RANGE = 0.4;
+
+    // Pixels
+    public final static double PURPLE_PIXEL_DROP_TIME = 500; // in milliseconds
+    public final static double YELLOW_PIXEL_DROP_TIME = 500; // in milliseconds
 
     // Slides
     public final static double SLIDE_HUB_DIAMETER = 1.5; // in inches
     public final static double HIGH_SET_LINE = 20.1; // in inches
     public final static double MEDIUM_SET_LINE = 16; // in inches
     public final static double LOW_SET_LINE = 12.375; // in inches
-    public static double slideUpAutoPow = /*voltageNormalize(0.8)*/ 0.8;
-    public static double slideDownAutoPow = /*voltageNormalize(-0.5)*/ -0.5;
-    public static double slideUpManualPow = /*voltageNormalize(0.4)*/ 0.4;
-    public static double slideDownManualPow = /*voltageNormalize(-0.3)*/ -0.3;
+    public static double slideUpAutoPow = voltageNormalize(0.8);
+    public static double slideDownAutoPow = voltageNormalize(-0.5);
+    public static double slideUpManualPow = voltageNormalize(0.4);
+    public static double slideDownManualPow = voltageNormalize(-0.3);
 
     // Drivetrain
-    public static double pow = /*voltageNormalize(0.77)*/ 0.77;
-    public static double slowPow = /*voltageNormalize(0.2)*/ 0.2;
+    public static double pow = voltageNormalize(0.77);
+    public static double slowPow = voltageNormalize(0.2);
+    public static double autoFastPow = voltageNormalizeForAuto(0.77);
+    public static double autoSlowPow = voltageNormalizeForAuto(0.2);
     public final static double driveStickDeadZoneLow = 0.05;
     public final static double driveStickDeadZoneHigh = 0.9;
     public final static double turningDeadZone = 0.05;
     public final static double QUICK_TURN_ANGLE = Math.toRadians(45);
+    public final static double BACKDROP_SAFETY_DISTANCE = 8; // in inches
+    public final static double BACKDROP_ALIGNMENT_RANGE = 0.05; // in inches
+    public final static double AWAY_FROM_SPIKE_MARK_TIME = 800; // in milliseconds
+    public final static double AWAY_FROM_BACKDROP_TIME = 500; // in milliseconds
 
     // Hanging
     public static double hangPow = /*voltageNormalize(1)*/ 1;
@@ -70,12 +90,14 @@ public class BotValues
     }
 
     // Distance Sensor
-    public final static double BACKDROP_SAFETY_DISTANCE = 12.0; // in inches
+    public final static double STACK_SAFETY_DISTANCE = 5; // in inches
 
     // Computer Vision
     public final static Float INFERENCE_CONFIDENCE_THRESHOLD = 0.5f;
-    public final static int RESOLUTION_WIDTH = 1280;
-    public final static int RESOLUTION_HEIGHT = 720;
+    public final static int INTAKE_RESOLUTION_WIDTH = 1280;
+    public final static int INTAKE_RESOLUTION_HEIGHT = 720;
+    public final static int OUTTAKE_RESOLUTION_WIDTH = 1280;
+    public final static int OUTTAKE_RESOLUTION_HEIGHT = 720;
     public final static String RB_MODEL_NAME = "redBack.tflite";
     public final static String RA_MODEL_NAME = "redFront.tflite";
     public final static String BB_MODEL_NAME = "blueBack.tflite";
@@ -89,7 +111,8 @@ public class BotValues
     public final static int RED_LEFT_APRIL_TAG = 4;
     public final static int RED_CENTER_APRIL_TAG = 5;
     public final static int RED_RIGHT_APRIL_TAG = 6;
-    public final static double CAMERA_DISTANCE_TO_CLAW = 3.0; // inches from camera to center of outtaking claw
+    public final static double CAMERA_DISTANCE_TO_CLAW = 3.0; // inches from camera to center of right claw (positive if camera is to the right of claw)
+    public final static double APRIL_TAG_DETECTION_TIME = 250; // in milliseconds
 
     // Pixels
 
@@ -115,7 +138,10 @@ public class BotValues
     /////////////////////////////// Robot Positions /////////////////////////////////////
 
     // Starting Position
-    public static final Pose2d startPose = new Pose2d(66, -36, Math.toRadians(0));
+    public static final Pose2d startPoseRA = new Pose2d(66, -36, Math.toRadians(0));
+    public static final Pose2d startPoseRB = new Pose2d(66, 12, Math.toRadians(0));
+    public static final Pose2d startPoseBA = new Pose2d(-66, -36, Math.toRadians(180));
+    public static final Pose2d startPoseBB = new Pose2d(-66, 12, Math.toRadians(180));
 
     // Spike Marks
     public static final Vector2d leftSpikeRA = new Vector2d(30, -47);
@@ -155,10 +181,14 @@ public class BotValues
     public static final Vector2d backdropBlueRight = new Vector2d(-30, 52);
 
     // Parking
-    public static final Vector2d redParking1 = new Vector2d(12, 60);
-    public static final Vector2d redParking2 = new Vector2d(60, 60);
-    public static final Vector2d blueParking1 = new Vector2d(-12, 60);
-    public static final Vector2d blueParking2 = new Vector2d(-60, 60);
+    public static final Vector2d redParkingLeft = new Vector2d(12, 60);
+    public static final Vector2d redParkingRight = new Vector2d(60, 60);
+    public static final Vector2d blueParkingRight = new Vector2d(-12, 60);
+    public static final Vector2d blueParkingLeft = new Vector2d(-60, 60);
+
+    // Distances
+    public static final double spikeMarkBackOutDistance = 7; // in inches
+    public static final double backdropBackOutDistance = 7; // in inches
 
 
     ///////////////////////////////// Road Runner Info ///////////////////////////////
