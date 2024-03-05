@@ -163,7 +163,7 @@ public class RDXBlast extends LinearOpMode
         camera = hardwareMap.get(WebcamName.class, "cool cam");
         aprilTagProcessor = AprilTagProcessor.easyCreateWithDefaults();
         aprilTagProcessor.setDecimation(2);
-        portal = (new VisionPortal.Builder().setCamera(camera).setCameraResolution(new Size(BotValues.RESOLUTION_WIDTH, BotValues.RESOLUTION_HEIGHT)).addProcessor(aprilTagProcessor)).build();
+        portal = (new VisionPortal.Builder().setCamera(camera).setCameraResolution(new Size(BotValues.INTAKE_RESOLUTION_WIDTH, BotValues.INTAKE_RESOLUTION_HEIGHT)).addProcessor(aprilTagProcessor)).build();
         portal.stopLiveView();
         classifier = new ImageRecognition(BotValues.INFERENCE_CONFIDENCE_THRESHOLD, 1, 3, 0, 0, BotValues.RB_MODEL_NAME);
         frameNum = 0;
