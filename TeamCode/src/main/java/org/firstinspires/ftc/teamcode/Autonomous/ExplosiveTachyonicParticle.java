@@ -81,7 +81,7 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
     public double currentAngle;
     public TouchSensor touchSensor;
     public ElapsedTime timer;
-    public static DistanceSensor distanceSensor;
+    public DistanceSensor distanceSensor;
     public static VoltageSensor voltageSensor;
 
     // Positions
@@ -427,6 +427,7 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
     public void backwardSlow() {power(-1 * BotValues.autoSlowPow);}
     public void strafeRightSlow() {power(BotValues.autoSlowPow, -1 * BotValues.autoSlowPow, -1 * BotValues.autoSlowPow, BotValues.autoSlowPow);}
     public void strafeLeftSlow() {power(-1 * BotValues.autoSlowPow, BotValues.autoSlowPow, BotValues.autoSlowPow, -1 * BotValues.autoSlowPow);}
+    public void stopDrive() {power(0);}
     public void forwardFast() {power(BotValues.autoFastPow);}
     public void backwardFast() {power(-1 * BotValues.autoFastPow);}
     public void strafeRightFast() {power(BotValues.autoFastPow, -1 * BotValues.autoFastPow, -1 * BotValues.autoFastPow, BotValues.autoFastPow);}

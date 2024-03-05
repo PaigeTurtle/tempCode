@@ -12,8 +12,16 @@ public class BotValues
     // Arm
     public final static double LEFT_ARM_HOME = 0.1;
     public final static double LEFT_ARM_OUTTAKE = 0.8;
+    public final static double LEFT_ARM_STACK_45 = 0.25;
+    public final static double LEFT_ARM_STACK_34 = 0.2;
+    public final static double LEFT_ARM_STACK_23 = 0.15;
+    public final static double LEFT_ARM_STACK_12 = 0.1;
     public final static double RIGHT_ARM_HOME = 0.7;
     public final static double RIGHT_ARM_OUTTAKE = 0;
+    public final static double RIGHT_ARM_STACK_45 = 0.55;
+    public final static double RIGHT_ARM_STACK_34 = 0.6;
+    public final static double RIGHT_ARM_STACK_23 = 0.65;
+    public final static double RIGHT_ARM_STACK_12 = 0.7;
     public final static double ARM_TO_OUTTAKE_TIME = 1000; // in milliseconds
     public final static double ARM_TO_INTAKE_TIME = 1000; // in milliseconds
 
@@ -22,10 +30,18 @@ public class BotValues
     public final static double LEFT_WRIST_OUTTAKE_DOWN = 0.1;
     public final static double LEFT_WRIST_INTAKE = 0.35;
     public final static double LEFT_WRIST_OUTTAKE_UP = 0.65;
+    public final static double LEFT_WRIST_STACK_45 = 0.5;
+    public final static double LEFT_WRIST_STACK_34 = 0.45;
+    public final static double LEFT_WRIST_STACK_23 = 0.4;
+    public final static double LEFT_WRIST_STACK_12 = 0.35;
     public final static double RIGHT_WRIST_HOME = 0.9;
     public final static double RIGHT_WRIST_OUTTAKE_DOWN = 0.85;
     public final static double RIGHT_WRIST_INTAKE = 0.35;
     public final static double RIGHT_WRIST_OUTTAKE_UP = 0.35;
+    public final static double RIGHT_WRIST_STACK_45 = 0.2;
+    public final static double RIGHT_WRIST_STACK_34 = 0.25;
+    public final static double RIGHT_WRIST_STACK_23 = 0.3;
+    public final static double RIGHT_WRIST_STACK_12 = 0.35;
     public final static double WRIST_TO_INTAKE_TIME = 200; // in milliseconds
     public final static double WRIST_TO_FOLD_TIME = 200; // in milliseconds
     public final static double WRIST_TO_OUTTAKE_DOWN_TIME = 200; // in milliseconds
@@ -102,9 +118,13 @@ public class BotValues
     public final static String RA_MODEL_NAME = "redFront.tflite";
     public final static String BB_MODEL_NAME = "blueBack.tflite";
     public final static String BA_MODEL_NAME = "blueFront.tflite";
+    public final static String STACK_DETECTION_MODEL_NAME = "stackDetection.tflite";
     public final static int PROP_LEFT = 0;
     public final static int PROP_CENTER = 1;
     public final static int PROP_RIGHT = 2;
+    public final static int TOO_LEFT_OF_STACK = 0;
+    public final static int TOO_RIGHT_OF_STACK = 1;
+    public final static int ALIGNED_WITH_STACK = 2;
     public final static int BLUE_LEFT_APRIL_TAG = 1;
     public final static int BLUE_CENTER_APRIL_TAG = 2;
     public final static int BLUE_RIGHT_APRIL_TAG = 3;
