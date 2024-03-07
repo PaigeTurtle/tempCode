@@ -81,7 +81,7 @@ public class ExplosiveTachyon extends LinearOpMode
         while (opModeIsActive() && !(isStopRequested()))
         {
             updateControls();
-            digitalDrive();
+            analogDrive();
             triggerActions();
         }
     }

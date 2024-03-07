@@ -70,16 +70,16 @@ public class BotValues
     public final static double HIGH_SET_LINE = 20.1; // in inches
     public final static double MEDIUM_SET_LINE = 16; // in inches
     public final static double LOW_SET_LINE = 12.375; // in inches
-    public static double slideUpAutoPow = voltageNormalize(0.8);
-    public static double slideDownAutoPow = voltageNormalize(-0.5);
-    public static double slideUpManualPow = voltageNormalize(0.4);
-    public static double slideDownManualPow = voltageNormalize(-0.3);
+    public static double slideUpAutoPow = 0.8; //voltageNormalize(0.8);
+    public static double slideDownAutoPow = -0.5; //voltageNormalize(-0.5);
+    public static double slideUpManualPow = 0.4; //voltageNormalize(0.4);
+    public static double slideDownManualPow = -0.3; //voltageNormalize(-0.3);
 
     // Drivetrain
-    public static double pow = voltageNormalize(0.77);
-    public static double slowPow = voltageNormalize(0.2);
-    public static double autoFastPow = voltageNormalizeForAuto(0.77);
-    public static double autoSlowPow = voltageNormalizeForAuto(0.2);
+    public static double pow = 0.77; //voltageNormalize(0.77);
+    public static double slowPow = 0.2; //voltageNormalize(0.2);
+    public static double autoFastPow = 0.77; //voltageNormalizeForAuto(0.77);
+    public static double autoSlowPow = 0.2; //voltageNormalizeForAuto(0.2);
     public final static double driveStickDeadZoneLow = 0.05;
     public final static double driveStickDeadZoneHigh = 0.9;
     public final static double turningDeadZone = 0.05;
@@ -88,6 +88,7 @@ public class BotValues
     public final static double BACKDROP_ALIGNMENT_RANGE = 0.05; // in inches
     public final static double AWAY_FROM_SPIKE_MARK_TIME = 800; // in milliseconds
     public final static double AWAY_FROM_BACKDROP_TIME = 500; // in milliseconds
+    public final static double AUTONOMOUS_TIME_CUSHION = 2;
 
     // Hanging
     public static double hangPow = /*voltageNormalize(1)*/ 1;
@@ -133,8 +134,6 @@ public class BotValues
     public final static int RED_RIGHT_APRIL_TAG = 6;
     public final static double CAMERA_DISTANCE_TO_CLAW = 3.0; // inches from camera to center of right claw (positive if camera is to the right of claw)
     public final static double APRIL_TAG_DETECTION_TIME = 250; // in milliseconds
-
-    // Pixels
 
 
     // Normalize Power By Voltage

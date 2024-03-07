@@ -457,6 +457,66 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         leftWrist.setPosition(BotValues.LEFT_WRIST_OUTTAKE_UP);
         rightWrist.setPosition(BotValues.RIGHT_WRIST_OUTTAKE_UP);
     }
+    public void wristToStackIntake(int height, boolean two)
+    {
+        if (height == 5)
+        {
+            if (two)
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_45);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_45);
+            }
+            else
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_5);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_5);
+            }
+        }
+        else if (height == 4)
+        {
+            if (two)
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_34);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_34);
+            }
+            else
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_45);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_45);
+            }
+        }
+        else if (height == 3)
+        {
+            if (two)
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_23);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_23);
+            }
+            else
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_34);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_34);
+            }
+        }
+        else if (height == 2)
+        {
+            if (two)
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_12);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_12);
+            }
+            else
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_23);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_23);
+            }
+        }
+        else if (height == 1)
+        {
+            leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_12);
+            rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_12);
+        }
+    }
     public void armToIntake()
     {
         leftArm.setPosition(BotValues.LEFT_ARM_HOME);
@@ -466,6 +526,71 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
     {
         leftArm.setPosition(BotValues.LEFT_ARM_OUTTAKE);
         rightArm.setPosition(BotValues.RIGHT_ARM_OUTTAKE);
+    }
+    public void armToStackIntake(int height, boolean two)
+    {
+        if (height == 5)
+        {
+            if (two)
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_45);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_45);
+            }
+            else
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_5);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_5);
+            }
+        }
+        else if (height == 4)
+        {
+            if (two)
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_34);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_34);
+            }
+            else
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_45);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_45);
+            }
+        }
+        else if (height == 3)
+        {
+            if (two)
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_23);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_23);
+            }
+            else
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_34);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_34);
+            }
+        }
+        else if (height == 2)
+        {
+            if (two)
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_12);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_12);
+            }
+            else
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_23);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_23);
+            }
+        }
+        else if (height == 1)
+        {
+            leftArm.setPosition(BotValues.LEFT_ARM_STACK_12);
+            rightArm.setPosition(BotValues.RIGHT_ARM_STACK_12);
+        }
+    }
+    public void armToStackUp()
+    {
+        leftArm.setPosition(BotValues.LEFT_ARM_STACK_UP);
+        rightArm.setPosition(BotValues.RIGHT_ARM_STACK_UP);
     }
 }
 
