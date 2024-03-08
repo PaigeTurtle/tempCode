@@ -5,7 +5,6 @@ import android.util.Size;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -23,7 +22,7 @@ import org.tensorflow.lite.task.vision.classifier.Classifications;
 import java.io.File;
 import java.util.List;
 
-@Disabled//@Autonomous (name = "Detonate FR")
+@Autonomous (name = "Detonate FR")
 public class DetonateFR extends LinearOpMode
 {
     // Computer Vision
@@ -63,12 +62,12 @@ public class DetonateFR extends LinearOpMode
     private double xPos; // in inches
     private double yPos; // in inches
     private Pose2d currentPose;
-    private int slidePos;
+    private int slidePos, stackHeight;
     private double horizontalErrorToAprilTag, verticalErrorToAprilTag, distanceToStack;
 
     // Timers
     private ElapsedTime armTimer, wristTimer, leftClawTimer, rightClawTimer, purplePixelTimer, yellowPixelTimer, driveTimer;
-    private ElapsedTime aprilTagTimer, loopTimer, opModeTimer;
+    private ElapsedTime whitePixelTimer, aprilTagTimer, loopTimer, opModeTimer;
 
 
     // Flags
@@ -77,8 +76,8 @@ public class DetonateFR extends LinearOpMode
 
 
     // Trajectories
-    Trajectory toSpikeMark, awayFromSpikeMark, toAprilTagDetectionSpot, adjustHorizontally, adjustVertically;
-    Trajectory awayFromBackdrop, toStack3, toStack4, intoStack, toDetectionSpotWhite, toParking;
+    Trajectory toSpikeMark, toAwayFromSpikeMark, toAprilTagDetectionSpotYellow, toAprilTagDetectionSpotWhite, adjustHorizontallyAprilTag, adjustVerticallyAprilTag;
+    Trajectory toAwayFromBackdrop, toStack, intoStack, outOfStack, toDetectionSpotWhite, toParking;
 
 
     // States
@@ -86,19 +85,18 @@ public class DetonateFR extends LinearOpMode
     private AutoState autoState;
     private enum DriveState
     {
-        INITIAL, TO_SPIKE_MARK, AT_SPIKE_MARK, AWAY_FROM_SPIKE_MARK, TO_DETECTION_SPOT, LOOKING_FOR_APRIL_TAG,
-        ADJUSTING_HORIZONTALLY_APRIL_TAG, ADJUSTING_VERTICALLY_APRIL_TAG, SCORE_YELLOW, AWAY_FROM_BACKDROP,
-        TO_STACK_3, TO_STACK_4, DETECTING_HORIZONTAL_ALIGNMENT_STACKS, ADJUSTING_HORIZONTALLY_STACKS,
-        DETECTING_DISTANCE_TO_STACK, MOVING_INTO_STACK, INTAKING_PIXELS, PARKING, PARKED
+        INITIAL, TO_SPIKE_MARK, AT_SPIKE_MARK, TO_AWAY_FROM_SPIKE_MARK, AWAY_FROM_SPIKE_MARK, TO_DETECTION_SPOT_YELLOW, LOOKING_FOR_APRIL_TAG_YELLOW,
+        ADJUSTING_HORIZONTALLY_APRIL_TAG, ADJUSTING_VERTICALLY_APRIL_TAG, SCORE_YELLOW, TO_AWAY_FROM_BACKDROP, AWAY_FROM_BACKDROP,
+        TO_STACK, DETECTING_HORIZONTAL_ALIGNMENT_STACKS, ADJUSTING_HORIZONTALLY_STACKS,
+        DETECTING_DISTANCE_TO_STACK, MOVING_INTO_STACK, INTAKING_PIXELS, MOVING_OUT_OF_STACK, OUT_OF_STACK, TO_DETECTION_SPOT_WHITE, LOOKING_FOR_APRIL_TAG_WHITE, SCORE_WHITE, PARKING, PARKED
     }
     private DriveState driveState, previousDriveState;
-    // States
-    private enum SlideState {INITIAL, UP_LOW, LOW, UP_MEDIUM, MEDIUM, UP_HIGH, HIGH, DOWN, UP_MANUAL, DOWN_MANUAL, STATIONARY}
+    private enum SlideState {INITIAL, UP_LOW, LOW, UP_MEDIUM, MEDIUM, UP_HIGH, HIGH, DOWN, UP_MANUAL, DOWN_MANUAL, STATIONARY, TO_YELLOW_DROP, YELLOW_DROP}
     private SlideState slideState, previousSlideState;
-    private enum ArmState {INTAKE, TO_OUTTAKE, OUTTAKE, TO_INTAKE, STACK_45, TO_STACK_45, STACK_34,
+    private enum ArmState {INTAKE, TO_OUTTAKE, OUTTAKE, TO_INTAKE, TO_STACK_INTAKE, STACK_INTAKE, TO_STACK_UP, STACK_UP, STACK_45, TO_STACK_45, STACK_34,
         TO_STACK_34, STACK_23, TO_STACK_23, STACK_12, TO_STACK_12}
     private ArmState armState, previousArmState;
-    private enum WristState {FOLD, TO_INTAKE, INTAKE, TO_DOWN_OUTTAKE, DOWN_OUTTAKE, TO_UP_OUTTAKE, UP_OUTTAKE, TO_FOLD,
+    private enum WristState {FOLD, TO_INTAKE, INTAKE, TO_DOWN_OUTTAKE, DOWN_OUTTAKE, TO_UP_OUTTAKE, UP_OUTTAKE, TO_FOLD, TO_STACK_INTAKE, STACK_INTAKE,
         STACK_45, TO_STACK_45, STACK_34, TO_STACK_34, STACK_23, TO_STACK_23, STACK_12, TO_STACK_12}
     private WristState wristState, previousWristState;
     private enum ClawState {CLOSED, TO_OPEN, OPEN, TO_CLOSED}
@@ -106,9 +104,11 @@ public class DetonateFR extends LinearOpMode
     private enum PixelState
     {
         NO_PIXELS, LEFT_1, RIGHT_1, LEFT_AND_RIGHT, LEFT_2, RIGHT_2, YELLOW_AND_WHITE, PURPLE_ONLY, YELLOW_ONLY, YELLOW_AND_PURPLE,
-        DROPPING_PURPLE, DROPPING_YELLOW
+        DROPPING_PURPLE, DROPPING_YELLOW, DROPPING_WHITE
     }
     private PixelState pixelState, previousPixelState;
+    private enum StackState {STACK_1, STACK_2, STACK_3, STACK_4, STACK_5, STACK_6, NO_STACKS};
+    private StackState stackState, previousStackState;
     private enum AprilTagState {INITIAL, GETTING_DETECTIONS, VERIFYING_DETECTIONS, PROCESSING_DETECTIONS,
         REFRESHING_DETECTIONS, TARGET_FOUND}
     private AprilTagState aprilTagState, previousAprilTagState;
@@ -118,7 +118,7 @@ public class DetonateFR extends LinearOpMode
 
     // Essentially the main method
     public void runOpMode()
-    {/*
+    {
         // Initialization
         c4 = new ExplosiveTachyonicParticle(hardwareMap);
         finalizeAutoState();
@@ -145,11 +145,21 @@ public class DetonateFR extends LinearOpMode
         loopTimer.reset();
         while (opModeIsActive() && !(isStopRequested()))
         {
-            triggerActionsBackdropSimple();
+            driveFSM();
+            slidesFSM();
+            armFSM();
+            wristFSM();
+            rightClawFSM();
+            leftClawFSM();
+            pixelsFSM();
+            aprilTagFSM();
+            imageRecognitionFSM();
+            stacksFSM();
+            c4.update();
             telemetry.addData("Loop Time", loopTimer.milliseconds());
             telemetry.update();
             loopTimer.reset();
-        }*/
+        }
     }
 
     // Computer Vision Methods
@@ -243,13 +253,21 @@ public class DetonateFR extends LinearOpMode
         rightClawTimer = new ElapsedTime();
         purplePixelTimer = new ElapsedTime();
         yellowPixelTimer = new ElapsedTime();
+        whitePixelTimer = new ElapsedTime();
         driveTimer = new ElapsedTime();
         aprilTagTimer = new ElapsedTime();
         loopTimer = new ElapsedTime();
         opModeTimer = new ElapsedTime();
+
+        if (autoState == AutoState.RED_AUDIENCE) {stackState = StackState.STACK_4;}
+        else if (autoState == AutoState.BLUE_BACKDROP) {stackState = StackState.STACK_1;}
+        else if (autoState == AutoState.BLUE_AUDIENCE) {stackState = StackState.STACK_3;}
+        else {stackState = StackState.STACK_4;}
+        previousStackState = stackState;
+        stackHeight = 5;
     }
 
-    public void initDriveSequences()
+    public void initDriveSequences() // need to update trajectories
     {
         if (autoState == AutoState.RED_AUDIENCE)
         {
@@ -265,10 +283,10 @@ public class DetonateFR extends LinearOpMode
                         .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
                         .splineToConstantHeading(BotValues.leftSpikeBB, Math.toRadians(0))
                         .build();
-                awayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
                         .forward(BotValues.spikeMarkBackOutDistance)
                         .build();
-                toAprilTagDetectionSpot = c4.trajectoryBuilder(awayFromSpikeMark.end())
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
                         .splineToConstantHeading(BotValues.backdropBlueLeft, Math.toRadians(90))
                         .build();
             }
@@ -278,10 +296,10 @@ public class DetonateFR extends LinearOpMode
                         .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
                         .splineToConstantHeading(BotValues.centerSpikeBB, Math.toRadians(0))
                         .build();
-                awayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
                         .forward(BotValues.spikeMarkBackOutDistance)
                         .build();
-                toAprilTagDetectionSpot = c4.trajectoryBuilder(awayFromSpikeMark.end())
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
                         .splineToConstantHeading(BotValues.backdropBlueCenter, Math.toRadians(90))
                         .build();
             }
@@ -291,10 +309,10 @@ public class DetonateFR extends LinearOpMode
                         .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
                         .splineToConstantHeading(BotValues.rightSpikeBB, Math.toRadians(0))
                         .build();
-                awayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
                         .forward(BotValues.spikeMarkBackOutDistance)
                         .build();
-                toAprilTagDetectionSpot = c4.trajectoryBuilder(awayFromSpikeMark.end())
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
                         .splineToConstantHeading(BotValues.backdropBlueRight, Math.toRadians(90))
                         .build();
             }
@@ -313,10 +331,10 @@ public class DetonateFR extends LinearOpMode
                         .splineToSplineHeading(new Pose2d(48, 12, Math.toRadians(90)), Math.toRadians(0))
                         .splineToConstantHeading(BotValues.leftSpikeRB, Math.toRadians(0))
                         .build();
-                awayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
                         .forward(BotValues.spikeMarkBackOutDistance)
                         .build();
-                toAprilTagDetectionSpot = c4.trajectoryBuilder(awayFromSpikeMark.end())
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
                         .splineToConstantHeading(BotValues.backdropRedLeft, Math.toRadians(90))
                         .build();
             }
@@ -326,10 +344,10 @@ public class DetonateFR extends LinearOpMode
                         .splineToSplineHeading(new Pose2d(48, 12, Math.toRadians(90)), Math.toRadians(0))
                         .splineToConstantHeading(BotValues.centerSpikeRB, Math.toRadians(0))
                         .build();
-                awayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
                         .forward(BotValues.spikeMarkBackOutDistance)
                         .build();
-                toAprilTagDetectionSpot = c4.trajectoryBuilder(awayFromSpikeMark.end())
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
                         .splineToConstantHeading(BotValues.backdropRedCenter, Math.toRadians(90))
                         .build();
             }
@@ -339,10 +357,10 @@ public class DetonateFR extends LinearOpMode
                         .splineToSplineHeading(new Pose2d(48, 12, Math.toRadians(90)), Math.toRadians(0))
                         .splineToConstantHeading(BotValues.rightSpikeRB, Math.toRadians(0))
                         .build();
-                awayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
                         .forward(BotValues.spikeMarkBackOutDistance)
                         .build();
-                toAprilTagDetectionSpot = c4.trajectoryBuilder(awayFromSpikeMark.end())
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
                         .splineToConstantHeading(BotValues.backdropRedRight, Math.toRadians(90))
                         .build();
             }
@@ -479,947 +497,8 @@ public class DetonateFR extends LinearOpMode
         stackFrameNum++;
     }
 
-/*
-    // Simpler ones
-    public void triggerActionsBackdropSimple()
-    {
-        // Drivetrain FSM
-        if (driveState == DriveState.INITIAL)
-        {
-            if (opModeIsActive())
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.TO_SPIKE_MARK;
-            }
-        }
-        else if (driveState == DriveState.TO_SPIKE_MARK)
-        {
-            if (!(drivePowered))
-            {
-                c4.followTrajectoryAsync(toSpikeMark);
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy()))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.AT_SPIKE_MARK;
-                currentPose = toSpikeMark.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.AT_SPIKE_MARK)
-        {
-            if (pixelState == PixelState.YELLOW_ONLY)
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.AWAY_FROM_SPIKE_MARK;
-            }
-        }
-        else if (driveState == DriveState.AWAY_FROM_SPIKE_MARK)
-        {
-            if (!(drivePowered))
-            {
-                c4.followTrajectoryAsync(awayFromSpikeMark);
-                drivePowered = true;
-                driveTimer.reset();
-            }
-            else if (!(c4.isBusy()) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED) && (wristState == WristState.FOLD))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.TO_DETECTION_SPOT;
-                currentPose = awayFromSpikeMark.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.TO_DETECTION_SPOT)
-        {
-            if (!(drivePowered))
-            {
-                c4.followTrajectoryAsync(toAprilTagDetectionSpot);
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy()))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.LOOKING_FOR_APRIL_TAG;
-                currentPose = toAprilTagDetectionSpot.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.LOOKING_FOR_APRIL_TAG)
-        {
-            if ((aprilTagState == AprilTagState.TARGET_FOUND) && (armState == ArmState.OUTTAKE)
-                    && (wristState == WristState.DOWN_OUTTAKE) && (slideState == SlideState.LOW))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.ADJUSTING_HORIZONTALLY_APRIL_TAG;
-            }
-        }
-        else if (driveState == DriveState.ADJUSTING_HORIZONTALLY_APRIL_TAG)
-        {
-            if (!(drivePowered))
-            {
-                if ((horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW) > BotValues.BACKDROP_ALIGNMENT_RANGE)
-                {
-                    adjustHorizontally = c4.trajectoryBuilder(currentPose)
-                            .strafeRight(horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW)
-                            .build();
-                    c4.followTrajectoryAsync(adjustHorizontally);
-                    currentPose = adjustHorizontally.end();
-                }
-                else if ((horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW) < (-1 * BotValues.BACKDROP_ALIGNMENT_RANGE))
-                {
-                    adjustHorizontally = c4.trajectoryBuilder(currentPose)
-                            .strafeLeft(-1 * (horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW))
-                            .build();
-                    c4.followTrajectoryAsync(adjustHorizontally);
-                    currentPose = adjustHorizontally.end();
-                }
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy())) // Maybe add a condition that checks if the robot is in line with April Tag after adjusting
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.ADJUSTING_VERTICALLY_APRIL_TAG;
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.ADJUSTING_VERTICALLY_APRIL_TAG)
-        {
-            if (!(drivePowered))
-            {
-                if ((verticalErrorToAprilTag - BotValues.BACKDROP_SAFETY_DISTANCE) > BotValues.BACKDROP_ALIGNMENT_RANGE)
-                {
-                    adjustVertically = c4.trajectoryBuilder(currentPose)
-                            .forward(verticalErrorToAprilTag - BotValues.BACKDROP_SAFETY_DISTANCE)
-                            .build();
-                    c4.followTrajectoryAsync(adjustVertically);
-                    currentPose = adjustVertically.end();
-                }
-                else if ((verticalErrorToAprilTag - BotValues.BACKDROP_SAFETY_DISTANCE) < (-1 * BotValues.BACKDROP_ALIGNMENT_RANGE))
-                {
-                    adjustVertically = c4.trajectoryBuilder(currentPose)
-                            .back(BotValues.BACKDROP_SAFETY_DISTANCE - verticalErrorToAprilTag)
-                            .build();
-                    c4.followTrajectoryAsync(adjustVertically);
-                    currentPose = adjustVertically.end();
-                }
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy())) // Maybe add a condition that checks if the limit switches are triggered (touching the backdrop)
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.SCORE_YELLOW;
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.SCORE_YELLOW)
-        {
-            if ((pixelState == PixelState.NO_PIXELS) && (leftClawState == ClawState.CLOSED)
-                    && (rightClawState == ClawState.CLOSED))
-            {
-                awayFromBackdrop = c4.trajectoryBuilder(currentPose)
-                        .back(BotValues.backdropBackOutDistance)
-                        .build();
-                previousDriveState = driveState;
-                driveState = DriveState.AWAY_FROM_BACKDROP;
-            }
-        }
-        else if (driveState == DriveState.AWAY_FROM_BACKDROP)
-        {
-            if (!(drivePowered))
-            {
-                c4.followTrajectoryAsync(awayFromBackdrop);
-                drivePowered = true;
-                driveTimer.reset();
-            }
-            else if (!(c4.isBusy()) && (armState == ArmState.INTAKE) && (wristState == WristState.FOLD)
-                    && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED)
-                    && (slideState == SlideState.INITIAL))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.PARKING;
-                currentPose = awayFromBackdrop.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.PARKING)
-        {
-            if (!(drivePowered))
-            {
-                if (autoState == AutoState.RED_AUDIENCE)
-                {
-                    toParking = c4.trajectoryBuilder(currentPose)
-                            .splineToConstantHeading(BotValues.redParkingLeft, Math.toRadians(90))
-                            .build();
-                }
-                else if (autoState == AutoState.BLUE_BACKDROP)
-                {
-                    toParking = c4.trajectoryBuilder(currentPose)
-                            .splineToConstantHeading(BotValues.blueParkingLeft, Math.toRadians(90))
-                            .build();
-                }
-                else if (autoState == AutoState.BLUE_AUDIENCE)
-                {
-                    toParking = c4.trajectoryBuilder(currentPose)
-                            .splineToConstantHeading(BotValues.blueParkingRight, Math.toRadians(90))
-                            .build();
-                }
-                else
-                {
-                    toParking = c4.trajectoryBuilder(currentPose)
-                            .splineToConstantHeading(BotValues.redParkingRight, Math.toRadians(90))
-                            .build();
-                }
-                c4.followTrajectoryAsync(toParking);
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy()))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.PARKED;
-                currentPose = toParking.end();
-                drivePowered = false;
-            }
-        }
 
-
-        // Slides FSM
-        if (slideState == SlideState.INITIAL)
-        {
-            if (slidesPowered)
-            {
-                c4.leftSlides.setPower(0);
-                c4.rightSlides.setPower(0);
-                c4.rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-                c4.rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                slidesPowered = false;
-            }
-            else if ((driveState == DriveState.LOOKING_FOR_APRIL_TAG) && (armState == ArmState.OUTTAKE))
-            {
-                previousSlideState = slideState;
-                slideState = SlideState.UP_LOW;
-            }
-        }
-        else if (slideState == SlideState.UP_LOW)
-        {
-            if (!(c4.rightSlides.isBusy()) && (c4.rightSlides.getCurrentPosition()) != 0)
-            {
-                previousSlideState = slideState;
-                slideState = SlideState.LOW;
-            }
-            else if (!(c4.rightSlides.isBusy()))
-            {
-                double distance = BotValues.LOW_SET_LINE;
-                c4.rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-                c4.rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                slidePos = (int)((distance / (BotValues.SLIDE_HUB_DIAMETER * Math.PI)) * BotValues.TICKS_PER_REV_312);
-                c4.rightSlides.setTargetPosition(slidePos);
-                c4.rightSlides.setMode(DcMotorEx.RunMode.RUN_TO_POSITION);
-
-                // set power for moving up
-                c4.leftSlides.setPower(BotValues.slideUpAutoPow);
-                c4.rightSlides.setPower(BotValues.slideUpAutoPow);
-                slidesPowered = true;
-            }
-        }
-        else if (slideState == SlideState.LOW)
-        {
-            if (slidesPowered)
-            {
-                c4.leftSlides.setPower(0);
-                c4.rightSlides.setPower(0);
-                c4.rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-                c4.rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
-                slidesPowered = false;
-            }
-            else if ((driveState == DriveState.AWAY_FROM_BACKDROP) && (driveTimer.milliseconds() >= BotValues.AWAY_FROM_BACKDROP_TIME))
-            {
-                previousSlideState = slideState;
-                slideState = SlideState.DOWN;
-            }
-        }
-        else if (slideState == SlideState.DOWN)
-        {
-            if (c4.touchSensor.isPressed())
-            {
-                previousSlideState = slideState;
-                slideState = SlideState.INITIAL;
-            }
-            else
-            {
-                if (!(slidesPowered))
-                {
-                    c4.leftSlides.setPower(BotValues.slideDownAutoPow);
-                    c4.rightSlides.setPower(BotValues.slideDownAutoPow);
-                    slidesPowered = true;
-                }
-            }
-        }
-
-
-        // Arm FSM
-        if (armState == ArmState.INTAKE)
-        {
-            if ((driveState == DriveState.LOOKING_FOR_APRIL_TAG) && (wristState == WristState.INTAKE))
-            {
-                previousArmState = armState;
-                armState = ArmState.TO_OUTTAKE;
-            }
-        }
-        else if (armState == ArmState.TO_OUTTAKE)
-        {
-            if (!(armPowered))
-            {
-                c4.leftArm.setPosition(BotValues.LEFT_ARM_OUTTAKE);
-                c4.rightArm.setPosition(BotValues.RIGHT_ARM_OUTTAKE);
-                armTimer.reset();
-                armPowered = true;
-            }
-            else if (armTimer.milliseconds() >= BotValues.ARM_TO_OUTTAKE_TIME)
-            {
-                previousArmState = armState;
-                armState = ArmState.OUTTAKE;
-                armPowered = false;
-            }
-        }
-        else if (armState == ArmState.OUTTAKE)
-        {
-            if ((driveState == DriveState.AWAY_FROM_BACKDROP) && (slideState == SlideState.INITIAL)
-                    && (wristState == WristState.INTAKE) && (leftClawState == ClawState.CLOSED)
-                    && (rightClawState == ClawState.CLOSED))
-            {
-                previousArmState = armState;
-                armState = ArmState.TO_INTAKE;
-            }
-        }
-        else if (armState == ArmState.TO_INTAKE)
-        {
-            if (!(armPowered))
-            {
-                c4.leftArm.setPosition(BotValues.LEFT_ARM_HOME);
-                c4.rightArm.setPosition(BotValues.RIGHT_ARM_HOME);
-                armTimer.reset();
-                armPowered = true;
-            }
-            else if (armTimer.milliseconds() >= BotValues.ARM_TO_INTAKE_TIME)
-            {
-                previousArmState = armState;
-                armState = ArmState.INTAKE;
-                armPowered = false;
-            }
-        }
-
-
-        // Wrist FSM
-        if (wristState == WristState.FOLD)
-        {
-            if ((driveState == DriveState.AT_SPIKE_MARK) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED))
-            {
-                previousWristState = wristState;
-                wristState = WristState.TO_INTAKE;
-            }
-            else if ((driveState == DriveState.LOOKING_FOR_APRIL_TAG) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED))
-            {
-                previousWristState = wristState;
-                wristState = WristState.TO_INTAKE;
-            }
-        }
-        else if (wristState == WristState.TO_INTAKE)
-        {
-            if (!(wristPowered))
-            {
-                c4.leftWrist.setPosition(BotValues.LEFT_WRIST_INTAKE);
-                c4.rightWrist.setPosition(BotValues.RIGHT_WRIST_INTAKE);
-                wristTimer.reset();
-                wristPowered = true;
-            }
-            else if (wristTimer.milliseconds() >= BotValues.WRIST_TO_INTAKE_TIME)
-            {
-                previousWristState = wristState;
-                wristState = WristState.INTAKE;
-                wristPowered = false;
-            }
-        }
-        else if (wristState == WristState.INTAKE)
-        {
-            if ((driveState == DriveState.AWAY_FROM_SPIKE_MARK) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED))
-            {
-                previousWristState = wristState;
-                wristState = WristState.TO_FOLD;
-            }
-            if ((driveState == DriveState.LOOKING_FOR_APRIL_TAG) && (armState == ArmState.OUTTAKE))
-            {
-                previousWristState = wristState;
-                wristState = WristState.TO_DOWN_OUTTAKE;
-            }
-            else if ((driveState == DriveState.AWAY_FROM_BACKDROP) && (armState == ArmState.INTAKE) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED))
-            {
-                previousWristState = wristState;
-                wristState = WristState.TO_FOLD;
-            }
-        }
-        else if (wristState == WristState.TO_DOWN_OUTTAKE)
-        {
-            if (!(wristPowered))
-            {
-                c4.leftWrist.setPosition(BotValues.LEFT_WRIST_OUTTAKE_DOWN);
-                c4.rightWrist.setPosition(BotValues.RIGHT_WRIST_OUTTAKE_DOWN);
-                wristTimer.reset();
-                wristPowered = true;
-            }
-            else if (wristTimer.milliseconds() >= BotValues.WRIST_TO_OUTTAKE_DOWN_TIME)
-            {
-                previousWristState = wristState;
-                wristState = WristState.DOWN_OUTTAKE;
-                wristPowered = false;
-            }
-        }
-        else if (wristState == WristState.DOWN_OUTTAKE)
-        {
-            if ((driveState == DriveState.AWAY_FROM_BACKDROP) && (driveTimer.milliseconds() >= BotValues.AWAY_FROM_BACKDROP_TIME))
-            {
-                previousWristState = wristState;
-                wristState = WristState.TO_INTAKE;
-            }
-        }
-        else if (wristState == WristState.TO_FOLD)
-        {
-            if (!(wristPowered))
-            {
-                c4.leftWrist.setPosition(BotValues.LEFT_WRIST_HOME);
-                c4.rightWrist.setPosition(BotValues.RIGHT_WRIST_HOME);
-                wristTimer.reset();
-                wristPowered = true;
-            }
-            else if (wristTimer.milliseconds() >= BotValues.WRIST_TO_FOLD_TIME)
-            {
-                previousWristState = wristState;
-                wristState = WristState.FOLD;
-                wristPowered = false;
-            }
-        }
-
-
-        // Left Claw FSM (Assuming purple outtake is left claw)
-        if (leftClawState == ClawState.CLOSED)
-        {
-            if ((driveState == DriveState.AT_SPIKE_MARK) && (wristState == WristState.INTAKE))
-            {
-                previousLeftClawState = leftClawState;
-                leftClawState = ClawState.TO_OPEN;
-            }
-        }
-        else if (leftClawState == ClawState.TO_OPEN)
-        {
-            if (!(leftClawPowered))
-            {
-                c4.leftClaw.setPosition(BotValues.LEFT_CLAW_RANGE);
-                leftClawTimer.reset();
-                leftClawPowered = true;
-            }
-            else if (leftClawTimer.milliseconds() >= BotValues.LEFT_CLAW_OPEN_TIME)
-            {
-                previousLeftClawState = leftClawState;
-                leftClawState = ClawState.OPEN;
-                leftClawPowered = false;
-            }
-        }
-        else if (leftClawState == ClawState.OPEN)
-        {
-            if ((pixelState == PixelState.YELLOW_ONLY) && (driveState == DriveState.AWAY_FROM_SPIKE_MARK)
-                    && (driveTimer.milliseconds() >= BotValues.AWAY_FROM_SPIKE_MARK_TIME))
-            {
-                previousLeftClawState = leftClawState;
-                leftClawState = ClawState.TO_CLOSED;
-            }
-        }
-        else if (leftClawState == ClawState.TO_CLOSED)
-        {
-            if (!(leftClawPowered))
-            {
-                c4.leftClaw.setPosition(BotValues.LEFT_CLAW_HOME);
-                leftClawTimer.reset();
-                leftClawPowered = true;
-            }
-            else if (leftClawTimer.milliseconds() >= BotValues.LEFT_CLAW_CLOSE_TIME)
-            {
-                previousLeftClawState = leftClawState;
-                leftClawState = ClawState.CLOSED;
-                leftClawPowered = false;
-            }
-        }
-
-
-        // Right Claw FSM (Assuming yellow outtake is right claw)
-        if (rightClawState == ClawState.CLOSED)
-        {
-            if ((wristState == WristState.DOWN_OUTTAKE) && (armState == ArmState.OUTTAKE) && (driveState == DriveState.SCORE_YELLOW))
-            {
-                previousRightClawState = rightClawState;
-                rightClawState = ClawState.TO_OPEN;
-            }
-        }
-        else if (rightClawState == ClawState.TO_OPEN)
-        {
-            if (!(rightClawPowered))
-            {
-                c4.rightClaw.setPosition(BotValues.RIGHT_CLAW_RANGE);
-                rightClawTimer.reset();
-                rightClawPowered = true;
-            }
-            else if (rightClawTimer.milliseconds() >= BotValues.RIGHT_CLAW_OPEN_TIME)
-            {
-                previousRightClawState = rightClawState;
-                rightClawState = ClawState.OPEN;
-                rightClawPowered = false;
-            }
-        }
-        else if (rightClawState == ClawState.OPEN)
-        {
-            if ((pixelState == PixelState.NO_PIXELS) && (driveState == DriveState.SCORE_YELLOW))
-            {
-                previousRightClawState = rightClawState;
-                rightClawState = ClawState.TO_CLOSED;
-            }
-        }
-        else if (rightClawState == ClawState.TO_CLOSED)
-        {
-            if (!(rightClawPowered))
-            {
-                c4.rightClaw.setPosition(BotValues.RIGHT_CLAW_HOME);
-                rightClawTimer.reset();
-                rightClawPowered = true;
-            }
-            else if (rightClawTimer.milliseconds() >= BotValues.RIGHT_CLAW_CLOSE_TIME)
-            {
-                previousRightClawState = rightClawState;
-                rightClawState = ClawState.CLOSED;
-                rightClawPowered = false;
-            }
-        }
-
-
-        // Pixels FSM
-        if (pixelState == PixelState.YELLOW_AND_PURPLE)
-        {
-            if ((leftClawState == ClawState.OPEN) && (driveState == DriveState.AT_SPIKE_MARK))
-            {
-                purplePixelTimer.reset();
-                previousPixelState = pixelState;
-                pixelState = PixelState.DROPPING_PURPLE;
-            }
-        }
-        else if (pixelState == PixelState.DROPPING_PURPLE)
-        {
-            if (purplePixelTimer.milliseconds() >= BotValues.PURPLE_PIXEL_DROP_TIME)
-            {
-                previousPixelState = pixelState;
-                pixelState = PixelState.YELLOW_ONLY;
-            }
-        }
-        else if (pixelState == PixelState.YELLOW_ONLY)
-        {
-            if (rightClawState == ClawState.OPEN)
-            {
-                yellowPixelTimer.reset();
-                previousPixelState = pixelState;
-                pixelState = PixelState.DROPPING_YELLOW;
-            }
-        }
-        else if (pixelState == PixelState.DROPPING_YELLOW)
-        {
-            if (yellowPixelTimer.milliseconds() >= BotValues.YELLOW_PIXEL_DROP_TIME)
-            {
-                previousPixelState = pixelState;
-                pixelState = PixelState.NO_PIXELS;
-            }
-        }
-
-
-        // April Tag FSM
-        if (aprilTagState == AprilTagState.INITIAL)
-        {
-            if (driveState == DriveState.LOOKING_FOR_APRIL_TAG)
-            {
-                previousAprilTagState = aprilTagState;
-                aprilTagState = AprilTagState.GETTING_DETECTIONS;
-            }
-        }
-        else if (aprilTagState == AprilTagState.GETTING_DETECTIONS)
-        {
-            if (!(aprilTagDetectionsRequested))
-            {
-                currentDetections = aprilTagProcessor.getDetections();
-                aprilTagTimer.reset();
-                aprilTagDetectionsRequested = true;
-            }
-            else if (aprilTagTimer.milliseconds() >= BotValues.APRIL_TAG_DETECTION_TIME)
-            {
-                previousAprilTagState = aprilTagState;
-                aprilTagState = AprilTagState.VERIFYING_DETECTIONS;
-            }
-        }
-        else if (aprilTagState == AprilTagState.VERIFYING_DETECTIONS)
-        {
-            if (currentDetections == null || currentDetections.size() == 0)
-            {
-                previousAprilTagState = aprilTagState;
-                aprilTagState = AprilTagState.REFRESHING_DETECTIONS;
-                aprilTagDetectionsRequested = false;
-            }
-            else
-            {
-                telemetry.addData("# AprilTags Detected", currentDetections.size());
-                telemetry.update();
-                currentAprilTagIndex = 0;
-                previousAprilTagState = aprilTagState;
-                aprilTagState = AprilTagState.PROCESSING_DETECTIONS;
-            }
-        }
-        else if (aprilTagState == AprilTagState.REFRESHING_DETECTIONS)
-        {
-            if (!(aprilTagDetectionsRequested))
-            {
-                currentDetections = aprilTagProcessor.getFreshDetections();
-                aprilTagTimer.reset();
-                aprilTagDetectionsRequested = true;
-            }
-            else if (aprilTagTimer.milliseconds() >= BotValues.APRIL_TAG_DETECTION_TIME)
-            {
-                previousAprilTagState = aprilTagState;
-                aprilTagState = AprilTagState.VERIFYING_DETECTIONS;
-            }
-        }
-        else if (aprilTagState == AprilTagState.PROCESSING_DETECTIONS)
-        {
-            if (!(detectionSelected))
-            {
-                if (currentAprilTagIndex < currentDetections.size())
-                {
-                    chosenDetection = currentDetections.get(currentAprilTagIndex);
-                    detectionSelected = true;
-                }
-                else
-                {
-                    previousAprilTagState = aprilTagState;
-                    aprilTagState = AprilTagState.REFRESHING_DETECTIONS;
-                    aprilTagDetectionsRequested = false;
-                }
-            }
-            else if ((chosenDetection.metadata != null))
-            {
-                if (chosenDetection.id == desiredAprilTagID)
-                {
-                    telemetry.addLine("ID: " + chosenDetection.id + ", " + chosenDetection.metadata.name);
-                    telemetry.update();
-                    previousAprilTagState = aprilTagState;
-                    horizontalErrorToAprilTag = chosenDetection.ftcPose.x;
-                    verticalErrorToAprilTag = chosenDetection.ftcPose.y;
-                    aprilTagState = AprilTagState.TARGET_FOUND;
-                }
-                else
-                {
-                    telemetry.addLine("ID: " + chosenDetection.id + ", " + chosenDetection.metadata.name);
-                    telemetry.update();
-                    currentAprilTagIndex++;
-                    detectionSelected = false;
-                }
-            }
-            else
-            {
-                telemetry.addData("Unknown Label", chosenDetection.id);
-                telemetry.update();
-                currentAprilTagIndex++;
-                detectionSelected = false;
-            }
-        }
-        c4.update();
-    }
-
-    public void triggerActionsBackdropDeluxe()
-    {
-        // Drivetrain FSM
-        if (driveState == DriveState.INITIAL)
-        {
-            if (opModeIsActive())
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.TO_SPIKE_MARK;
-            }
-        }
-        else if (driveState == DriveState.TO_SPIKE_MARK)
-        {
-            if (!(drivePowered))
-            {
-                c4.followTrajectoryAsync(toSpikeMark);
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy()))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.AT_SPIKE_MARK;
-                currentPose = toSpikeMark.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.AT_SPIKE_MARK)
-        {
-            if (pixelState == PixelState.YELLOW_ONLY)
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.AWAY_FROM_SPIKE_MARK;
-            }
-        }
-        else if (driveState == DriveState.AWAY_FROM_SPIKE_MARK)
-        {
-            if (!(drivePowered))
-            {
-                c4.followTrajectoryAsync(awayFromSpikeMark);
-                drivePowered = true;
-                driveTimer.reset();
-            }
-            else if (!(c4.isBusy()) && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED) && (wristState == WristState.FOLD))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.TO_DETECTION_SPOT;
-                currentPose = awayFromSpikeMark.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.TO_DETECTION_SPOT)
-        {
-            if (!(drivePowered))
-            {
-                if (previousDriveState == DriveState.AWAY_FROM_SPIKE_MARK)
-                {
-                    c4.followTrajectoryAsync(toAprilTagDetectionSpot);
-                    drivePowered = true;
-                }
-                else
-                {
-                    //toDetectionSpotWhite = c4.trajectoryBuilder(currentPose).spl
-                    c4.followTrajectoryAsync(toDetectionSpotWhite);
-                    drivePowered = true;
-                }
-            }
-            else if (!(c4.isBusy()))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.LOOKING_FOR_APRIL_TAG;
-                currentPose = toAprilTagDetectionSpot.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.LOOKING_FOR_APRIL_TAG)
-        {
-            if ((aprilTagState == AprilTagState.TARGET_FOUND) && (armState == ArmState.OUTTAKE)
-                    && (wristState == WristState.DOWN_OUTTAKE) && (slideState == SlideState.LOW))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.ADJUSTING_HORIZONTALLY_APRIL_TAG;
-            }
-        }
-        else if (driveState == DriveState.ADJUSTING_HORIZONTALLY_APRIL_TAG)
-        {
-            if (!(drivePowered))
-            {
-                if ((horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW) > BotValues.BACKDROP_ALIGNMENT_RANGE)
-                {
-                    adjustHorizontally = c4.trajectoryBuilder(currentPose)
-                            .strafeRight(horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW)
-                            .build();
-                    c4.followTrajectoryAsync(adjustHorizontally);
-                    currentPose = adjustHorizontally.end();
-                }
-                else if ((horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW) < (-1 * BotValues.BACKDROP_ALIGNMENT_RANGE))
-                {
-                    adjustHorizontally = c4.trajectoryBuilder(currentPose)
-                            .strafeLeft(-1 * (horizontalErrorToAprilTag + BotValues.CAMERA_DISTANCE_TO_CLAW))
-                            .build();
-                    c4.followTrajectoryAsync(adjustHorizontally);
-                    currentPose = adjustHorizontally.end();
-                }
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy())) // Maybe add a condition that checks if the robot is in line with April Tag after adjusting
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.ADJUSTING_VERTICALLY_APRIL_TAG;
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.ADJUSTING_VERTICALLY_APRIL_TAG)
-        {
-            if (!(drivePowered))
-            {
-                if ((verticalErrorToAprilTag - BotValues.BACKDROP_SAFETY_DISTANCE) > BotValues.BACKDROP_ALIGNMENT_RANGE)
-                {
-                    adjustVertically = c4.trajectoryBuilder(currentPose)
-                            .forward(verticalErrorToAprilTag - BotValues.BACKDROP_SAFETY_DISTANCE)
-                            .build();
-                    c4.followTrajectoryAsync(adjustVertically);
-                    currentPose = adjustVertically.end();
-                }
-                else if ((verticalErrorToAprilTag - BotValues.BACKDROP_SAFETY_DISTANCE) < (-1 * BotValues.BACKDROP_ALIGNMENT_RANGE))
-                {
-                    adjustVertically = c4.trajectoryBuilder(currentPose)
-                            .back(BotValues.BACKDROP_SAFETY_DISTANCE - verticalErrorToAprilTag)
-                            .build();
-                    c4.followTrajectoryAsync(adjustVertically);
-                    currentPose = adjustVertically.end();
-                }
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy())) // Maybe add a condition that checks if the limit switches are triggered (touching the backdrop)
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.SCORE_YELLOW;
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.SCORE_YELLOW)
-        {
-            if ((pixelState == PixelState.NO_PIXELS) && (leftClawState == ClawState.CLOSED)
-                    && (rightClawState == ClawState.CLOSED))
-            {
-                awayFromBackdrop = c4.trajectoryBuilder(currentPose)
-                        .back(BotValues.backdropBackOutDistance)
-                        .build();
-                previousDriveState = driveState;
-                driveState = DriveState.AWAY_FROM_BACKDROP;
-            }
-        }
-        else if (driveState == DriveState.AWAY_FROM_BACKDROP)
-        {
-            if (!(drivePowered))
-            {
-                c4.followTrajectoryAsync(awayFromBackdrop);
-                drivePowered = true;
-                driveTimer.reset();
-            }
-            else if (!(c4.isBusy()) && (armState == ArmState.INTAKE) && (wristState == WristState.FOLD)
-                    && (leftClawState == ClawState.CLOSED) && (rightClawState == ClawState.CLOSED)
-                    && (slideState == SlideState.INITIAL))
-            {
-                if ((autoState == AutoState.BLUE_BACKDROP) || (autoState == AutoState.BLUE_AUDIENCE))
-                {
-                    previousDriveState = driveState;
-                    driveState = DriveState.TO_STACK_3;
-                }
-                else
-                {
-                    previousDriveState = driveState;
-                    driveState = DriveState.TO_STACK_4;
-                }
-                currentPose = awayFromBackdrop.end();
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.TO_STACK_4)
-        {
-            if (!(drivePowered))
-            {
-                toStack4 = c4.trajectoryBuilder(currentPose)
-                        .splineToConstantHeading(new Vector2d(12, 18), Math.toRadians(90))
-                        .lineToConstantHeading(BotValues.stack4)
-                        .build();
-                c4.followTrajectoryAsync(toStack4);
-                currentPose = toStack4.end();
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy()))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.DETECTING_HORIZONTAL_ALIGNMENT_STACKS;
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.DETECTING_HORIZONTAL_ALIGNMENT_STACKS)
-        {
-            if ((imageRecognitionState == ImageRecognitionState.TOO_LEFT)
-                    || (imageRecognitionState == ImageRecognitionState.TOO_RIGHT))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.ADJUSTING_HORIZONTALLY_STACKS;
-            }
-            else if (imageRecognitionState == ImageRecognitionState.ALIGNED)
-            {
-                if (drivePowered)
-                {
-                    c4.stopDrive();
-                    drivePowered = false;
-                }
-                previousDriveState = driveState;
-                driveState = DriveState.DETECTING_DISTANCE_TO_STACK;
-            }
-        }
-        else if (driveState == DriveState.ADJUSTING_HORIZONTALLY_STACKS)
-        {
-            if (!(drivePowered))
-            {
-                if (imageRecognitionState == ImageRecognitionState.TOO_LEFT)
-                {
-                    c4.strafeRightSlow();
-                    drivePowered = true;
-                }
-                else if (imageRecognitionState == ImageRecognitionState.TOO_RIGHT)
-                {
-                    c4.strafeLeftSlow();
-                    drivePowered = true;
-                }
-            }
-            previousDriveState = driveState;
-            driveState = DriveState.DETECTING_HORIZONTAL_ALIGNMENT_STACKS;
-        }
-        else if (driveState == DriveState.DETECTING_DISTANCE_TO_STACK)
-        {
-            distanceToStack = c4.distanceSensor.getDistance(DistanceUnit.INCH);
-            if ((armState == ArmState.STACK_45) && (wristState == WristState.STACK_45) && (leftClawState == ClawState.OPEN))
-            {
-                if (distanceToStack > BotValues.STACK_SAFETY_DISTANCE)
-                {
-                    previousDriveState = driveState;
-                    driveState = DriveState.MOVING_INTO_STACK;
-                }
-                else
-                {
-                    previousDriveState = driveState;
-                    driveState = DriveState.INTAKING_PIXELS;
-                }
-            }
-        }
-        else if (driveState == DriveState.MOVING_INTO_STACK)
-        {
-            if (!(drivePowered))
-            {
-                intoStack = c4.trajectoryBuilder(currentPose)
-                        .back(distanceToStack)
-                        .build();
-                c4.followTrajectoryAsync(intoStack);
-                drivePowered = true;
-            }
-            else if (!(c4.isBusy()))
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.INTAKING_PIXELS;
-                drivePowered = false;
-            }
-        }
-        else if (driveState == DriveState.INTAKING_PIXELS)
-        {
-            if (pixelState == PixelState.LEFT_2)
-            {
-                previousDriveState = driveState;
-                driveState = DriveState.TO_DETECTION_SPOT;
-            }
-        }
-
-        imageRecognitionFSM();
-    }
-
-
-    public void driveFSM() // need to update for parking and possibly stack stuff
+    public void driveFSM()
     {
         if (driveState == DriveState.INITIAL)
         {
@@ -1479,14 +558,14 @@ public class DetonateFR extends LinearOpMode
         {
             if (!(drivePowered))
             {
-                c4.followTrajectoryAsync(toDetectionSpotYellow);
+                c4.followTrajectoryAsync(toAprilTagDetectionSpotYellow);
                 drivePowered = true;
             }
             else if (!(c4.isBusy()))
             {
                 previousDriveState = driveState;
                 driveState = DriveState.LOOKING_FOR_APRIL_TAG_YELLOW;
-                currentPose = toDetectionSpotYellow.end();
+                currentPose = toAprilTagDetectionSpotYellow.end();
                 drivePowered = false;
             }
         }
@@ -1570,6 +649,11 @@ public class DetonateFR extends LinearOpMode
         {
             if (!(drivePowered))
             {
+                /** This assumes that there is some positive vertical error greater than the
+                 * backdrop safety distance when the robot reaches the backdrop **/
+                toAwayFromBackdrop = c4.trajectoryBuilder(currentPose)
+                        .back(verticalErrorToAprilTag - BotValues.BACKDROP_SAFETY_DISTANCE)
+                        .build();
                 c4.followTrajectoryAsync(toAwayFromBackdrop);
                 drivePowered = true;
             }
@@ -1866,11 +950,11 @@ public class DetonateFR extends LinearOpMode
             if (!(c4.rightSlides.isBusy()) && (c4.rightSlides.getCurrentPosition()) != 0)
             {
                 previousSlideState = slideState;
-                slideState = SlideState.AT_YELLOW_DROP;
+                slideState = SlideState.YELLOW_DROP;
             }
             else if (!(c4.rightSlides.isBusy()))
             {
-                double distance = BotValues.YELOW_DROP_HEIGHT;
+                double distance = BotValues.YELLOW_DROP_HEIGHT;
                 c4.rightSlides.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                 c4.rightSlides.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
                 slidePos = (int)((distance / (BotValues.SLIDE_HUB_DIAMETER * Math.PI)) * BotValues.TICKS_PER_REV_312);
@@ -1883,7 +967,7 @@ public class DetonateFR extends LinearOpMode
                 slidesPowered = true;
             }
         }
-        else if (slideState == SlideState.AT_YELLOW_DROP)
+        else if (slideState == SlideState.YELLOW_DROP)
         {
             if (slidesPowered)
             {
@@ -2505,7 +1589,7 @@ public class DetonateFR extends LinearOpMode
         }
     }
 
-    public void imageRecognitionFSM() // done
+    public void imageRecognitionFSM() // need to update with timers for image recognition
     {
         // Image Recognition FSM
         if (imageRecognitionState == ImageRecognitionState.INITIAL)
@@ -2683,5 +1767,4 @@ public class DetonateFR extends LinearOpMode
             if (driveState == DriveState.SCORE_WHITE) {stackHeightAdjusted = false;}
         }
     }
-*/
 }
