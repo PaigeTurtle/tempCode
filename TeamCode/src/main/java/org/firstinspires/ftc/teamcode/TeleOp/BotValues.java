@@ -76,7 +76,7 @@ public class BotValues
     public static double slideDownManualPow = -0.3; //voltageNormalize(-0.3);
 
     // Drivetrain
-    public static double pow = 0.77; //voltageNormalize(0.77);
+    public static double pow = 0.5;//0.77; //voltageNormalize(0.77);
     public static double slowPow = 0.2; //voltageNormalize(0.2);
     public static double autoFastPow = 0.77; //voltageNormalizeForAuto(0.77);
     public static double autoSlowPow = 0.2; //voltageNormalizeForAuto(0.2);
@@ -152,6 +152,10 @@ public class BotValues
     public static double acceleratorTransform(double distance)
     {
         return Math.cos(distance * ((2 * Math.PI) / (4 * BACKDROP_SAFETY_DISTANCE)));
+    }
+    public static double acceleratorTransformTeleOp(double stick)
+    {
+        return Math.abs(Math.sin(0.7 * stick * (Math.PI / 3.0)));
     }
 
     /////////////////////////////// Robot Positions /////////////////////////////////////

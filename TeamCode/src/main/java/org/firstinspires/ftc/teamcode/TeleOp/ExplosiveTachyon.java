@@ -67,6 +67,7 @@ public class ExplosiveTachyon extends LinearOpMode
     private boolean armToIntake, armToOuttake;
     private boolean wristFold, wristToIntake, wristToDownOuttake, wristToUpOuttake;
     private boolean openLeftClaw, closeLeftClaw, openRightClaw, closeRightClaw;
+    private static double driveStickY;
 
     @Override
     public void runOpMode()
@@ -80,8 +81,9 @@ public class ExplosiveTachyon extends LinearOpMode
         waitForStart();
         while (opModeIsActive() && !(isStopRequested()))
         {
+            driveStickY = -1 * gamepad1.left_stick_y;
             updateControls();
-            analogDrive();
+            digitalDrive();
             triggerActions();
         }
     }
@@ -933,5 +935,7 @@ public class ExplosiveTachyon extends LinearOpMode
             rightHanger.setPower(0);
         }
     }
+
+    public static double getDriveStick() {return driveStickY;}
 }
 

@@ -5,6 +5,7 @@ import android.util.Size;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -22,7 +23,7 @@ import org.tensorflow.lite.task.vision.classifier.Classifications;
 import java.io.File;
 import java.util.List;
 
-@Autonomous (name = "Detonate FR")
+@Disabled//@Autonomous (name = "Detonate FR")
 public class DetonateFR extends LinearOpMode
 {
     // Computer Vision
@@ -117,7 +118,7 @@ public class DetonateFR extends LinearOpMode
 
     // Essentially the main method
     public void runOpMode()
-    {
+    {/*
         // Initialization
         c4 = new ExplosiveTachyonicParticle(hardwareMap);
         finalizeAutoState();
@@ -148,7 +149,7 @@ public class DetonateFR extends LinearOpMode
             telemetry.addData("Loop Time", loopTimer.milliseconds());
             telemetry.update();
             loopTimer.reset();
-        }
+        }*/
     }
 
     // Computer Vision Methods
@@ -478,7 +479,7 @@ public class DetonateFR extends LinearOpMode
         stackFrameNum++;
     }
 
-
+/*
     // Simpler ones
     public void triggerActionsBackdropSimple()
     {
@@ -2682,5 +2683,5 @@ public class DetonateFR extends LinearOpMode
             if (driveState == DriveState.SCORE_WHITE) {stackHeightAdjusted = false;}
         }
     }
-
+*/
 }

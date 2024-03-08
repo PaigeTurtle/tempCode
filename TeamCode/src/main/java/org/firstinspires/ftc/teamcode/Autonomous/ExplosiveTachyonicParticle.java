@@ -457,6 +457,7 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         leftWrist.setPosition(BotValues.LEFT_WRIST_OUTTAKE_UP);
         rightWrist.setPosition(BotValues.RIGHT_WRIST_OUTTAKE_UP);
     }
+    /*
     public void wristToStackIntake(int height, boolean two)
     {
         if (height == 5)
@@ -517,6 +518,7 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
             rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_12);
         }
     }
+     */
     public void armToIntake()
     {
         leftArm.setPosition(BotValues.LEFT_ARM_HOME);
@@ -527,6 +529,7 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
         leftArm.setPosition(BotValues.LEFT_ARM_OUTTAKE);
         rightArm.setPosition(BotValues.RIGHT_ARM_OUTTAKE);
     }
+    /*
     public void armToStackIntake(int height, boolean two)
     {
         if (height == 5)
@@ -587,10 +590,13 @@ public class ExplosiveTachyonicParticle extends MecanumDrive
             rightArm.setPosition(BotValues.RIGHT_ARM_STACK_12);
         }
     }
+
     public void armToStackUp()
     {
         leftArm.setPosition(BotValues.LEFT_ARM_STACK_UP);
         rightArm.setPosition(BotValues.RIGHT_ARM_STACK_UP);
     }
+
+     */
 }
 
