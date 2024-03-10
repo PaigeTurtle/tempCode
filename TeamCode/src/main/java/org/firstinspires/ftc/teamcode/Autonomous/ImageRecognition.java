@@ -115,7 +115,7 @@ public class ImageRecognition
                 baseOptionsBuilder.useNnapi();
         }*/
         try {
-            imageClassifier = ImageClassifier.createFromFileAndOptions(new File(/*"/sdcard/FIRST/tflitemodels/redBack.tflite"*/ this.modelPath), optionsBuilder.build());
+            imageClassifier = ImageClassifier.createFromFileAndOptions(new File("/sdcard/FIRST/tflitemodels/redBack.tflite"), optionsBuilder.build());
         } catch (IOException e) {
             Log.e(TAG, "TFLite failed to load model with error: " + e.getMessage());
         }

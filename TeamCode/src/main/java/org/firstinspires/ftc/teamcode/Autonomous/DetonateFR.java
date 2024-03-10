@@ -42,7 +42,8 @@ public class DetonateFR extends LinearOpMode
     private List<Category> stackCategories;
     private List<AprilTagDetection> currentDetections;
     private AprilTagDetection chosenDetection;
-    private File stackImageDirectory;
+    private File stackImageDirectory, stackFrameInput;
+    private Bitmap stackImageBitmap;
     private String[] stackImages;
     private int currentAprilTagIndex;
     private int desiredAprilTagID;
@@ -67,16 +68,17 @@ public class DetonateFR extends LinearOpMode
 
     // Timers
     private ElapsedTime armTimer, wristTimer, leftClawTimer, rightClawTimer, purplePixelTimer, yellowPixelTimer, driveTimer;
-    private ElapsedTime whitePixelTimer, aprilTagTimer, loopTimer, opModeTimer;
+    private ElapsedTime whitePixelTimer, aprilTagTimer, loopTimer, opModeTimer, imageRecognitionTimer;
 
 
     // Flags
     private boolean drivePowered, slidesPowered, armPowered, wristPowered, leftClawPowered, rightClawPowered;
     private boolean aprilTagDetectionsRequested, detectionSelected, strafeRight, stackHeightAdjusted;
+    private boolean imageSaving, imageSaved, fetchingFile, fileFetched, creatingBitmap, bitmapCreated;
 
 
     // Trajectories
-    Trajectory toSpikeMark, toAwayFromSpikeMark, toAprilTagDetectionSpotYellow, toAprilTagDetectionSpotWhite, adjustHorizontallyAprilTag, adjustVerticallyAprilTag;
+    Trajectory toSpikeMark, turnSpikeMark, toAwayFromSpikeMark, toAprilTagDetectionSpotYellow, toAprilTagDetectionSpotWhite, adjustHorizontallyAprilTag, adjustVerticallyAprilTag;
     Trajectory toAwayFromBackdrop, toStack, intoStack, outOfStack, toDetectionSpotWhite, toParking;
 
 
@@ -128,6 +130,7 @@ public class DetonateFR extends LinearOpMode
         telemetry.addData("C4", "Ready");
         telemetry.update();
 
+        c4.wristToIntake();
         // Recognize position of prop on spike marks during Init, takes the latest recognition
         while (opModeInInit())
         {
@@ -142,6 +145,7 @@ public class DetonateFR extends LinearOpMode
         classifier.clearImageClassifier(); // Clear up memory
         initDriveSequences();
 
+        c4.wristFold();
         loopTimer.reset();
         while (opModeIsActive() && !(isStopRequested()))
         {
@@ -247,6 +251,12 @@ public class DetonateFR extends LinearOpMode
         aprilTagDetectionsRequested = false;
         strafeRight = false;
         stackHeightAdjusted = false;
+        imageSaving = false;
+        imageSaved = false;
+        fetchingFile = false;
+        fileFetched = false;
+        creatingBitmap = false;
+        bitmapCreated = false;
         armTimer = new ElapsedTime();
         wristTimer = new ElapsedTime();
         leftClawTimer = new ElapsedTime();
@@ -258,20 +268,63 @@ public class DetonateFR extends LinearOpMode
         aprilTagTimer = new ElapsedTime();
         loopTimer = new ElapsedTime();
         opModeTimer = new ElapsedTime();
+        imageRecognitionTimer = new ElapsedTime();
 
+        /*
         if (autoState == AutoState.RED_AUDIENCE) {stackState = StackState.STACK_4;}
         else if (autoState == AutoState.BLUE_BACKDROP) {stackState = StackState.STACK_1;}
         else if (autoState == AutoState.BLUE_AUDIENCE) {stackState = StackState.STACK_3;}
-        else {stackState = StackState.STACK_4;}
+        else {stackState = StackState.STACK_4;}*/
+        stackState = StackState.NO_STACKS;
         previousStackState = stackState;
-        stackHeight = 5;
+        stackHeight = 0;
     }
 
     public void initDriveSequences() // need to update trajectories
     {
         if (autoState == AutoState.RED_AUDIENCE)
         {
-
+            currentPose = BotValues.startPoseBB;
+            c4.setPoseEstimate(currentPose);
+            if (label == BotValues.PROP_LEFT)
+            {
+                toSpikeMark = c4.trajectoryBuilder(currentPose)
+                        .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
+                        .splineToConstantHeading(BotValues.leftSpikeBB, Math.toRadians(0))
+                        .build();
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                        .forward(BotValues.spikeMarkBackOutDistance)
+                        .build();
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
+                        .splineToConstantHeading(BotValues.backdropBlueLeft, Math.toRadians(90))
+                        .build();
+            }
+            else if (label == BotValues.PROP_CENTER)
+            {
+                toSpikeMark = c4.trajectoryBuilder(currentPose)
+                        .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
+                        .splineToConstantHeading(BotValues.centerSpikeBB, Math.toRadians(0))
+                        .build();
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                        .forward(BotValues.spikeMarkBackOutDistance)
+                        .build();
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
+                        .splineToConstantHeading(BotValues.backdropBlueCenter, Math.toRadians(90))
+                        .build();
+            }
+            else if (label == BotValues.PROP_RIGHT)
+            {
+                toSpikeMark = c4.trajectoryBuilder(currentPose)
+                        .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
+                        .splineToConstantHeading(BotValues.rightSpikeBB, Math.toRadians(0))
+                        .build();
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                        .forward(BotValues.spikeMarkBackOutDistance)
+                        .build();
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
+                        .splineToConstantHeading(BotValues.backdropBlueRight, Math.toRadians(90))
+                        .build();
+            }
         }
         else if (autoState == AutoState.BLUE_BACKDROP)
         {
@@ -319,7 +372,47 @@ public class DetonateFR extends LinearOpMode
         }
         else if (autoState == AutoState.BLUE_AUDIENCE)
         {
-
+            currentPose = BotValues.startPoseBB;
+            c4.setPoseEstimate(currentPose);
+            if (label == BotValues.PROP_LEFT)
+            {
+                toSpikeMark = c4.trajectoryBuilder(currentPose)
+                        .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
+                        .splineToConstantHeading(BotValues.leftSpikeBB, Math.toRadians(0))
+                        .build();
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                        .forward(BotValues.spikeMarkBackOutDistance)
+                        .build();
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
+                        .splineToConstantHeading(BotValues.backdropBlueLeft, Math.toRadians(90))
+                        .build();
+            }
+            else if (label == BotValues.PROP_CENTER)
+            {
+                toSpikeMark = c4.trajectoryBuilder(currentPose)
+                        .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
+                        .splineToConstantHeading(BotValues.centerSpikeBB, Math.toRadians(0))
+                        .build();
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                        .forward(BotValues.spikeMarkBackOutDistance)
+                        .build();
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
+                        .splineToConstantHeading(BotValues.backdropBlueCenter, Math.toRadians(90))
+                        .build();
+            }
+            else if (label == BotValues.PROP_RIGHT)
+            {
+                toSpikeMark = c4.trajectoryBuilder(currentPose)
+                        .splineToSplineHeading(new Pose2d(-48, 12, Math.toRadians(90)), Math.toRadians(0))
+                        .splineToConstantHeading(BotValues.rightSpikeBB, Math.toRadians(0))
+                        .build();
+                toAwayFromSpikeMark = c4.trajectoryBuilder(toSpikeMark.end())
+                        .forward(BotValues.spikeMarkBackOutDistance)
+                        .build();
+                toAprilTagDetectionSpotYellow = c4.trajectoryBuilder(toAwayFromSpikeMark.end())
+                        .splineToConstantHeading(BotValues.backdropBlueRight, Math.toRadians(90))
+                        .build();
+            }
         }
         else
         {
@@ -450,14 +543,14 @@ public class DetonateFR extends LinearOpMode
         frameNum++;
     }
 
-    public void recognizeStackAlignmentAsync()
+    public void recognizeStackAlignmentSync()
     {
         ((VisionPortalImpl)stackDetectionPortal).saveNextFrameRaw("Capture/" + stackFrameNum);
-        //sleep(250);
+        sleep(250);
         File input = new File("/sdcard/VisionPortal-Capture/" + stackFrameNum + ".png");
-        //sleep(250);
+        sleep(250);
         Bitmap bitmap = stackClassifier.PNG2BMP(input);
-        //sleep(250);
+        sleep(250);
         stackResults = stackClassifier.classify(bitmap, 0);
         telemetry.addData("Results", stackResults);
         telemetry.update();
@@ -467,11 +560,11 @@ public class DetonateFR extends LinearOpMode
             telemetry.update();
             stackFrameNum++;
             ((VisionPortalImpl)propDetectionPortal).saveNextFrameRaw("Capture/" + stackFrameNum);
-            //sleep(250);
+            sleep(250);
             input = new File("/sdcard/VisionPortal-Capture/" + stackFrameNum + ".png");
-            //sleep(250);
+            sleep(250);
             bitmap = stackClassifier.PNG2BMP(input);
-            //sleep(250);
+            sleep(250);
             stackResults = stackClassifier.classify(bitmap, 0);
         }
         else
@@ -497,8 +590,83 @@ public class DetonateFR extends LinearOpMode
         stackFrameNum++;
     }
 
+    public void recognizeStackAlignmentAsync()
+    {
+        if (!(imageSaving))
+        {
+            ((VisionPortalImpl)stackDetectionPortal).saveNextFrameRaw("Capture/" + stackFrameNum);
+            imageRecognitionTimer.reset();
+            imageSaving = true;
+        }
+        else if (!(imageSaved))
+        {
+            if (imageRecognitionTimer.milliseconds() >= BotValues.IMAGE_RECOGNITION_CUSHION_TIME) {imageSaved = true;}
+        }
+        else
+        {
+            if (!(fetchingFile))
+            {
+                stackFrameInput = new File("/sdcard/VisionPortal-Capture/" + stackFrameNum + ".png");
+                imageRecognitionTimer.reset();
+                fetchingFile = true;
+            }
+            else if (!(fileFetched))
+            {
+                if (imageRecognitionTimer.milliseconds() >= BotValues.IMAGE_RECOGNITION_CUSHION_TIME) {fileFetched = true;}
+            }
+            else
+            {
+                if (!(creatingBitmap))
+                {
+                    stackImageBitmap = stackClassifier.PNG2BMP(stackFrameInput);
+                    imageRecognitionTimer.reset();
+                    creatingBitmap = true;
+                }
+                else if (!(bitmapCreated))
+                {
+                    if (imageRecognitionTimer.milliseconds() >= BotValues.IMAGE_RECOGNITION_CUSHION_TIME) {bitmapCreated = true;}
+                }
+                else
+                {
+                    stackResults = stackClassifier.classify(stackImageBitmap, 0);
+                    telemetry.addData("Results", stackResults);
+                    if (stackResults == null)
+                    {
+                        telemetry.addData("Recognition", "Null");
+                    }
+                    else
+                    {
+                        for (Classifications detection : stackResults)
+                        {
+                            stackCategories = detection.getCategories();
+                            Category correctDetection = null;
+                            for (Category x : stackCategories)
+                            {
+                                if (correctDetection == null) {correctDetection = x;}
+                                else if (x.getScore() > correctDetection.getScore()) {correctDetection = x;}
+                            }
+                            if (correctDetection == null) {break;}
+                            stackInferenceTime = stackClassifier.getInferenceTime();
+                            telemetry.addData("Recognition", correctDetection.getDisplayName());
+                            telemetry.addLine(correctDetection.getLabel() + ": " + correctDetection.getScore());
+                            telemetry.addLine("Inference Time: " + stackInferenceTime);
+                            stackLabel = Integer.parseInt(correctDetection.getLabel());
+                        }
+                    }
+                    stackFrameNum++;
+                    imageSaving = false;
+                    imageSaved = false;
+                    fetchingFile = false;
+                    fileFetched = false;
+                    creatingBitmap = false;
+                    bitmapCreated = false;
+                }
+            }
+        }
+    }
 
-    public void driveFSM()
+
+    public void driveFSM() // assumes vertical error to april tag > backdrop safety distance when robot reaches backdrop
     {
         if (driveState == DriveState.INITIAL)
         {
@@ -1589,7 +1757,7 @@ public class DetonateFR extends LinearOpMode
         }
     }
 
-    public void imageRecognitionFSM() // need to update with timers for image recognition
+    public void imageRecognitionFSM() // done
     {
         // Image Recognition FSM
         if (imageRecognitionState == ImageRecognitionState.INITIAL)

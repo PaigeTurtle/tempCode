@@ -20,7 +20,12 @@ public class StackIntakeTest extends LinearOpMode
         waitForStart();
         while (opModeIsActive() && !(isStopRequested()))
         {
-            if (gamepad1.dpad_up)
+            if (gamepad1.left_bumper)
+            {
+                leftArm.setPosition(BotValues.LEFT_ARM_STACK_5);
+                rightArm.setPosition(BotValues.RIGHT_ARM_STACK_5);
+            }
+            else if (gamepad1.dpad_up)
             {
                 leftArm.setPosition(BotValues.LEFT_ARM_STACK_45);
                 rightArm.setPosition(BotValues.RIGHT_ARM_STACK_45);
@@ -60,6 +65,10 @@ public class StackIntakeTest extends LinearOpMode
             {
                 leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_12);
                 rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_12);
+            }else if (gamepad1.right_bumper)
+            {
+                leftWrist.setPosition(BotValues.LEFT_WRIST_STACK_5);
+                rightWrist.setPosition(BotValues.RIGHT_WRIST_STACK_5);
             }
         }
     }

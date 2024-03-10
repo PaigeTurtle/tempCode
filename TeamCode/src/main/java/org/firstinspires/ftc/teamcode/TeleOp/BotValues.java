@@ -15,8 +15,8 @@ public class BotValues
     ///////////////// Arm /////////////////
 
     // Home (intake)
-    public final static double LEFT_ARM_HOME = 0.1;
-    public final static double RIGHT_ARM_HOME = 0.7;
+    public final static double LEFT_ARM_HOME = 0.08;
+    public final static double RIGHT_ARM_HOME = 0.72;
 
     // Outtake
     public final static double LEFT_ARM_OUTTAKE = 0.8;
@@ -24,7 +24,7 @@ public class BotValues
 
     // Stack Topmost Pixel (5)
     public final static double LEFT_ARM_STACK_5 = 0.3;
-    public final static double RIGHT_ARM_STACK_5 = 0.5;
+    public final static double RIGHT_ARM_STACK_5 = 0.6;
 
     // Stack Top 2 Pixels (4-5)
     public final static double LEFT_ARM_STACK_45 = 0.25;
@@ -32,7 +32,7 @@ public class BotValues
 
     // Stack Pixels 3-4
     public final static double LEFT_ARM_STACK_34 = 0.2;
-    public final static double RIGHT_ARM_STACK_34 = 0.6;
+    public final static double RIGHT_ARM_STACK_34 = 0.7;
 
     // Stack Pixels 2-3
     public final static double LEFT_ARM_STACK_23 = 0.15;
@@ -50,20 +50,20 @@ public class BotValues
     ///////////////// Wrist ///////////////////
 
     // Home (fold)
-    public final static double LEFT_WRIST_HOME = 0.1;
-    public final static double RIGHT_WRIST_HOME = 0.9;
+    public final static double LEFT_WRIST_HOME = 0.225;
+    public final static double RIGHT_WRIST_HOME = 0.875;
 
     // Intake
-    public final static double LEFT_WRIST_INTAKE = 0.35;
-    public final static double RIGHT_WRIST_INTAKE = 0.35;
+    public final static double LEFT_WRIST_INTAKE = 0.55;
+    public final static double RIGHT_WRIST_INTAKE = 0.55;
 
     // Outtake Down
     public final static double LEFT_WRIST_OUTTAKE_DOWN = 0.1;
     public final static double RIGHT_WRIST_OUTTAKE_DOWN = 0.85;
 
     // Outtake Up
-    public final static double LEFT_WRIST_OUTTAKE_UP = 0.65;
-    public final static double RIGHT_WRIST_OUTTAKE_UP = 0.35;
+    public final static double LEFT_WRIST_OUTTAKE_UP = 0.75;
+    public final static double RIGHT_WRIST_OUTTAKE_UP = 0.25;
 
     // Stack topmost pixel (5)
     public final static double LEFT_WRIST_STACK_5 = 0.55;
@@ -136,6 +136,10 @@ public class BotValues
 
     ///////////////////// April Tags /////////////////
     public final static double APRIL_TAG_DETECTION_TIME = 250; // in milliseconds
+
+
+    ///////////////// Image Recognition //////////////
+    public final static double IMAGE_RECOGNITION_CUSHION_TIME = 50; // in milliseconds
 
 
     ////////////////////// Driving ///////////////////
@@ -233,9 +237,13 @@ public class BotValues
 
 
     /////////////////// Detection Labels /////////////////
+
+    // Team Prop
     public final static int PROP_LEFT = 0;
     public final static int PROP_CENTER = 1;
     public final static int PROP_RIGHT = 2;
+
+    // Stack of White Pixels
     public final static int TOO_LEFT_OF_STACK = 0;
     public final static int TOO_RIGHT_OF_STACK = 1;
     public final static int ALIGNED_WITH_STACK = 2;
@@ -264,16 +272,16 @@ public class BotValues
     // convenience. Make sure to exclude any gear ratio included in MOTOR_CONFIG from GEAR_RATIO.
     public static double WHEEL_RADIUS = 2; // in
     public static double GEAR_RATIO = 1.937902592371828; // output (wheel) speed / input (motor) speed
-    public static double TRACK_WIDTH = 12.5; // in
+    public static double TRACK_WIDTH = 18.02; // in
 
 
     // These are the feedforward parameters used to model the drive motor behavior. If you are using
     // the built-in velocity PID, these values are fine as is. However, if you do not have drive
     // motor encoders or have elected not to use them for velocity control, these values should be
     // empirically tuned.
-    public static double kV = 0.03555; // Volt-seconds per meter
-    public static double kA = 0.00087; // Volt-seconds^2 per meter
-    public static double kStatic = 0.15069; // Volts
+    public static double kV = 0.009480; // Volt-seconds per meter
+    public static double kA = 0.00260; // Volt-seconds^2 per meter
+    public static double kStatic = 0.098; // Volts
 
 
     // These values are used to generate the trajectories for you robot. To ensure proper operation,
@@ -283,7 +291,7 @@ public class BotValues
     // inches.
     public static double MAX_VEL = 52.276; // inches per second
     public static double MAX_ACCEL = 52.276; // inches per second per second
-    public static double MAX_ANG_VEL = 3.1401684284210205; // radians per second
+    public static double MAX_ANG_VEL = Math.toRadians(180); // radians per second
     public static double MAX_ANG_ACCEL = Math.toRadians(180); // radians per second per second
 
 
